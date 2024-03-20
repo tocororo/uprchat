@@ -73,3 +73,15 @@ Esta tarea se refiere a que uprchat debe brindar posibilidades al usuario final 
 ## Despliegue
 
 Al llegar a este punto se conoce al detalle la arquitectura del sistema, los recursos que necesita y se han desarrollado las herramientas principales.
+
+## Tecnologias a estudiar
+
+- FastApi: Api Rest-Full [https://fastapi.tiangolo.com/]
+- LangChain: Prompt Eng [https://python.langchain.com/]
+- Scrapy: Web scrapping y crawler [https://scrapy.org/]
+- Angular: frontend
+- PyTorch [https://pytorch.org/docs/stable/index.html]
+- HuggingFace libs, Gradio. [https://huggingface.co/gradio]
+- Ollama [https://github.com/ollama/ollama]
+- OpenAPI Specification [https://www.openapis.org/]
+- Postgres
