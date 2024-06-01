@@ -83,5 +83,6 @@ Al llegar a este punto se conoce al detalle la arquitectura del sistema, los rec
 - PyTorch [https://pytorch.org/docs/stable/index.html]
 - HuggingFace libs, Gradio. [https://huggingface.co/gradio]
 - Ollama [https://github.com/ollama/ollama]
+- Unstructured [https://unstructured-io.github.io/unstructured/]
 - OpenAPI Specification [https://www.openapis.org/]
 - Postgres
