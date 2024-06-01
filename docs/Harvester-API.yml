@@ -1,0 +1,245 @@
+openapi: 3.0.3
+
+info:
+  title: Harvester API
+  description: This is the first version of the harvester API
+  version: 1.0.0
+
+tags:
+  - name: harvester
+    description: Controlling the harvester
+
+  - name: sources
+    description: Controlling the sources
+
+paths:
+#Harvester paths
+  /harvester/start:
+    post:
+      tags:
+        - harvester
+      summary: To start the harvest
+      description: To start the harvest with the specific sources
+      operationId: startHarvest
+      requestBody:
+        description: Data of the harvester
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Harvester'
+        required: true
+      responses:
+        '200':
+          description: Harvester running      
+        '400':
+          description: Invalid input
+        '422':
+          description: Unprocessable entity
+
+  /harvester/cancel/{name}:
+    post:
+      tags:
+        - harvester
+      summary: To cancel the harvest
+      description: To cancel the harvest in execution
+      operationId: cancelHarvest
+      parameters:
+        - name: name
+          in: path
+          description: Identifier of the harvest
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Harvest canceled      
+        '400':
+          description: Invalid name
+
+  /harvester/pause/{name}:
+    get:
+      tags:
+        - harvester
+      summary: To pause the harvest
+      description: To pause the current harvest
+      operationId: pauseHarvest
+      parameters:
+        - name: name
+          in: path
+          description: Identifier of the harvest
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Harvest paused       
+        '400':
+          description: Invalid id
+    
+  /harvester/continue/{name}:
+    post:
+      tags:
+        - harvester
+      summary: To continue the harvest
+      description: To continue the paused harvest
+      operationId: continueHarvest
+      parameters:
+        - name: name
+          in: path
+          description: Identifier of the harvest
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Harvest running again    
+        '400':
+          description: Invalid id
+
+#Sources paths
+  /sources:
+    post:
+      tags:
+        - sources
+      summary: To create source
+      description: Create the source 
+      operationId: createSource
+      requestBody:
+        description: Create source
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Source'
+        required: true
+      responses:
+        '201':
+          description: Source created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400':
+          description: Invalid input
+        '422':
+          description: Unprocessable entity
+    get:
+      tags: 
+        - sources
+      summary: Get sources
+      description: Get all the sources
+      operationId: getAllSources
+      responses:
+        '200':
+          description: Successful operation       
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Source' 
+        '404':
+          description: There are no sources
+  /sources{id}:
+    get:
+      tags:
+        - sources
+      summary: Get source
+      description: Get source by id
+      operationId: getSourceById
+      parameters:
+        - name: id
+          in: path
+          description: Identifier of the source
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation       
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400':
+          description: Invalid id
+        '404':
+          description: Source not found
+    put:
+      tags:
+        - sources
+      summary: Update source
+      description: Update source given the new data
+      operationId: updateSource
+      parameters:
+        - name: id
+          in: path
+          description: Identifier of the source
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Data to update
+        content:
+          application/json:
+            schema:
+                $ref: '#/components/schemas/Source'
+        required: true
+      responses:
+        '200':
+          description: Source updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Source'
+        '400':
+          description: Invalid id
+        '404':
+          description: Source not found
+        '422':
+          description: Unprocessable entity
+    delete:
+      tags:
+        - sources
+      summary: Delete source
+      description: Delete source given its id
+      operationId: deleteSource
+      parameters:
+        - name: id
+          description: Identifier of the source
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Source deleted
+        '400':
+          description: Invalid id
+        '404':
+          description: Source not found
+
+
+components:
+  schemas:
+    Source:
+      type: object
+      properties:
+        id:
+          type: string
+          example: https://intranet.upr.edu.cu
+    Harvester:
+      type: object
+      properties:
+        name:
+          type: string
+          example: UPR Harvester
+        start_urls: 
+          type: array
+          example: [https://intranet.upr.edu.cu , http://moodle.upr.edu.cu]
+        allowed_domains:
+          type: array
+          example: [upr.edu.cu , .cu]
+        collector_type:
+          type: json | array
+          example: | 
+            {name: UPR Harvester} 
+            []
+        
