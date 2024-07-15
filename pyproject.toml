@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "uprchat"
+version = "0.1.0"
+description = "university harvester, knowledge graph and graphRAG"
+authors = ["Rafael Martinez Estevez <malayibiri@gmail.com>"]
+readme = "README.md"
+
+
+[tool.poetry.dependencies]
+python = "3.12.3"
+fastapi = "^0.111.1"
+Scrapy = "^2.11.2"
+neo4j = "^5.22.0"
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^3.2.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
