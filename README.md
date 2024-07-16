@@ -25,4 +25,4 @@ Una vez realizado ese paso podrás verificar la instalación con el comando:
 `poetry install`
 
 ### Otros
-`blck ./` Para formatear todo el proyecto
+`black ./` Para formatear todo el proyecto
