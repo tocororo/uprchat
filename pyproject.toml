@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "university harvester, knowledge graph and graphRAG"
 authors = ["Rafael Martinez Estevez <malayibiri@gmail.com>"]
 readme = "README.md"
+package-mode = false
 
 
 [tool.poetry.dependencies]
@@ -11,10 +12,11 @@ python = "3.12.3"
 fastapi = "^0.111.1"
 Scrapy = "^2.11.2"
 neo4j = "^5.22.0"
-black = "^24.4.2"
+
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.2.5"
+black = "^24.4.2"
 
 [build-system]
 requires = ["poetry-core"]
