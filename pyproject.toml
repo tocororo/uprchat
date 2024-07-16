@@ -11,6 +11,7 @@ python = "3.12.3"
 fastapi = "^0.111.1"
 Scrapy = "^2.11.2"
 neo4j = "^5.22.0"
+black = "^24.4.2"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.2.5"
