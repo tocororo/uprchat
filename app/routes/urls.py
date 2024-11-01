@@ -15,15 +15,15 @@ def exist_url(session: Annotated[Session, Depends(get_session)], url: str):
 
 @rt.post("/", response_model=URL, status_code=status.HTTP_201_CREATED)
 async def create_url(session: Annotated[Session, Depends(get_session)], url: URL):
-        if not exist_url(session,url.url):
-            session.add(url)
-            session.commit()
-            session.refresh(url)
-            return url
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="That url already exists"
-            )
+    if not exist_url(session, url.url):
+        session.add(url)
+        session.commit()
+        session.refresh(url)
+        return url
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="That url already exists"
+        )
 
 
 @rt.get("/", response_model=list[URL], status_code=status.HTTP_200_OK)

@@ -23,6 +23,10 @@ class LLMQuery(SQLModel, table=True):
     model_id: int = Field(foreign_key="model.id")
     chat_id: int = Field(foreign_key="chat.id")
 
+    model_config = {
+        'protected_namespaces': ()
+    }
+
 
 class Model(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)

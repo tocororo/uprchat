@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlmodel import Session, select
 from typing import Annotated
-from ..models import Source, Source_Domain, Source_URL, SourceShow, URL, Domain
+from ..models import Source, Source_Domain, Source_URL, SourceShow
 from ..db_config import get_session
 
 rt = APIRouter(prefix="/sources", tags=["sources"])
