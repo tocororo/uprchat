@@ -43,7 +43,7 @@ class Source(SQLModel, table=True):
 
 class URL(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    url: str = Field(regex=r"^https?://",unique=True)
+    url: str = Field(regex=r"^https?://", unique=True)
 
 
 class Job(SQLModel, table=True):
@@ -54,7 +54,10 @@ class Job(SQLModel, table=True):
 
 class Domain(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    domain_url: str = Field(regex=r"^https?://")
+    domain_url: str = Field(
+        unique=True,
+        regex=r"^(?!-)(xn--)?[a-z0-9][a-z0-9-_]{0,61}[a-z0-9]{0,}\.?(xn--)?([a-z0-9\-]{1,61}|[a-z0-9-]{1,30})\.[a-z]{2,}$",
+    )
 
 
 class Source_URL(SQLModel, table=True):

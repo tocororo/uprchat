@@ -47,7 +47,7 @@ async def get_url_by_id(session: Annotated[Session, Depends(get_session)], id: i
 
 
 @rt.put("/{id}", response_model=URL, status_code=status.HTTP_200_OK)
-async def get_url_by_id(
+async def update_url(
     session: Annotated[Session, Depends(get_session)], id: int, url: URL
 ):
     url_db = session.get(URL, id)
@@ -64,7 +64,7 @@ async def get_url_by_id(
 
 
 @rt.delete("/{id}", status_code=status.HTTP_200_OK)
-async def get_url_by_id(session: Annotated[Session, Depends(get_session)], id: int):
+async def delete_url(session: Annotated[Session, Depends(get_session)], id: int):
     url = session.get(URL, id)
     if not url:
         raise HTTPException(
