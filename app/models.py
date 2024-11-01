@@ -43,7 +43,7 @@ class Source(SQLModel, table=True):
 
 class URL(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    url: str = Field(regex=r"^https?://")
+    url: str = Field(regex=r"^https?://",unique=True)
 
 
 class Job(SQLModel, table=True):
