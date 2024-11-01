@@ -26,7 +26,7 @@ class LLMQuery(SQLModel, table=True):
 
 class Model(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+    name: str = Field(unique=True, index=True)
     api_url: str = Field(regex=r"^https?://")
     api_key: str = Field()
 
@@ -35,10 +35,12 @@ class Collector(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     code_path: str = Field(unique=True, index=True)
 
-
-class Source(SQLModel, table=True):
+class SourceBase(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+    name: str = Field(unique=True, index=True)
+
+class Source(SourceBase, table=True):
+    pass
 
 
 class URL(SQLModel, table=True):
@@ -48,7 +50,7 @@ class URL(SQLModel, table=True):
 
 class Job(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
+    name: str = Field(unique=True, index=True)
     date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -73,3 +75,10 @@ class Source_Domain(SQLModel, table=True):
 class Source_Job(SQLModel, table=True):
     source_id: int = Field(foreign_key="source.id", primary_key=True)
     job_id: int = Field(foreign_key="job.id", primary_key=True)
+
+
+class SourceShow(SourceBase):
+    urls: list[int]
+    domains: list[int]
+
+
