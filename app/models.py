@@ -23,9 +23,7 @@ class LLMQuery(SQLModel, table=True):
     model_id: int = Field(foreign_key="model.id")
     chat_id: int = Field(foreign_key="chat.id")
 
-    model_config = {
-        'protected_namespaces': ()
-    }
+    model_config = {"protected_namespaces": ()}
 
 
 class Model(SQLModel, table=True):
@@ -39,9 +37,12 @@ class Collector(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     code_path: str = Field(unique=True, index=True)
 
+
 class SourceBase(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True)
+    collector_id: int = Field(foreign_key="collector.id")
+
 
 class Source(SourceBase, table=True):
     pass
@@ -67,22 +68,21 @@ class Domain(SQLModel, table=True):
 
 
 class Source_URL(SQLModel, table=True):
-    source_id: int = Field(foreign_key="source.id", primary_key=True)
-    url_id: int = Field(foreign_key="url.id", primary_key=True)
+    source_id: int = Field(foreign_key="source.id",primary_key=True)
+    url_id: int = Field(foreign_key="url.id",primary_key=True)
 
 
 class Source_Domain(SQLModel, table=True):
-    source_id: int = Field(foreign_key="source.id", primary_key=True)
-    domain_id: int = Field(foreign_key="domain.id", primary_key=True)
+    source_id: int = Field(foreign_key="source.id",primary_key=True)
+    domain_id: int = Field(foreign_key="domain.id",primary_key=True)
 
 
 class Source_Job(SQLModel, table=True):
-    source_id: int = Field(foreign_key="source.id", primary_key=True)
-    job_id: int = Field(foreign_key="job.id", primary_key=True)
+    # id: int | None = Field(default=None, primary_key=True)
+    source_id: int = Field(foreign_key="source.id",primary_key=True)
+    job_id: int = Field(foreign_key="job.id",primary_key=True)
 
 
 class SourceShow(SourceBase):
     urls: list[int]
     domains: list[int]
-
-
