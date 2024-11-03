@@ -53,10 +53,14 @@ class URL(SQLModel, table=True):
     url: str = Field(regex=r"^https?://", unique=True)
 
 
-class Job(SQLModel, table=True):
+class JobBase(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True)
     date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class Job(JobBase, table=True):
+    pass
 
 
 class Domain(SQLModel, table=True):
@@ -68,21 +72,24 @@ class Domain(SQLModel, table=True):
 
 
 class Source_URL(SQLModel, table=True):
-    source_id: int = Field(foreign_key="source.id",primary_key=True)
-    url_id: int = Field(foreign_key="url.id",primary_key=True)
+    source_id: int = Field(foreign_key="source.id", primary_key=True)
+    url_id: int = Field(foreign_key="url.id", primary_key=True)
 
 
 class Source_Domain(SQLModel, table=True):
-    source_id: int = Field(foreign_key="source.id",primary_key=True)
-    domain_id: int = Field(foreign_key="domain.id",primary_key=True)
+    source_id: int = Field(foreign_key="source.id", primary_key=True)
+    domain_id: int = Field(foreign_key="domain.id", primary_key=True)
 
 
 class Source_Job(SQLModel, table=True):
-    # id: int | None = Field(default=None, primary_key=True)
-    source_id: int = Field(foreign_key="source.id",primary_key=True)
-    job_id: int = Field(foreign_key="job.id",primary_key=True)
+    source_id: int = Field(foreign_key="source.id", primary_key=True)
+    job_id: int = Field(foreign_key="job.id", primary_key=True)
 
 
 class SourceShow(SourceBase):
     urls: list[int]
     domains: list[int]
+
+
+class JobShow(JobBase):
+    sources: list[int]

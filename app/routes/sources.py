@@ -14,7 +14,7 @@ def exist_source(session: Annotated[Session, Depends(get_session)], name: str):
 
 
 @rt.post("/", response_model=SourceShow, status_code=status.HTTP_201_CREATED)
-async def create_url(
+async def create_source(
     session: Annotated[Session, Depends(get_session)],
     source: Source,
     urls: list[int],

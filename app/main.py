@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from .db_config import create_db_and_tables
-from .routes import urls,domains,sources,models,collectors
+from .routes import urls,domains,sources,models,collectors,jobs
 
 
 app = FastAPI(title="UPR-K API",version='1.0.0')
@@ -15,3 +15,4 @@ app.include_router(domains.rt)
 app.include_router(sources.rt)
 app.include_router(models.rt)
 app.include_router(collectors.rt)
+app.include_router(jobs.rt)
