@@ -9,7 +9,7 @@ rt = APIRouter(prefix="/chats", tags=["chats"])
 
 
 @rt.post("/", response_model=Chat, status_code=status.HTTP_201_CREATED)
-async def create_model(
+async def create_chat(
     session: Annotated[Session, Depends(get_session)],
     username: Annotated[str, Depends(current_user)],
     chat: ChatCreate,
@@ -36,6 +36,20 @@ async def get_chats(
     return chats
 
 
+@rt.get("/{id}", response_model=list[Chat], status_code=status.HTTP_200_OK)
+async def get_chat(
+    session: Annotated[Session, Depends(get_session)],
+    username: Annotated[str, Depends(current_user)],
+    id: int,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100,
+):
+    chat = session.exec(
+        select(Chat).where(Chat.id == id).offset(offset).limit(limit)
+    ).first()
+    return chat
+
+
 @rt.delete("/", status_code=status.HTTP_200_OK)
 async def delete_chats(
     session: Annotated[Session, Depends(get_session)],
@@ -45,3 +59,14 @@ async def delete_chats(
     session.exec(delete(Chat).where(Chat.user_id == user_id))
     session.commit()
     return "Chats deleted"
+
+
+@rt.delete("/{id}", status_code=status.HTTP_200_OK)
+async def delete_chats(
+    session: Annotated[Session, Depends(get_session)],
+    id: int,
+    username: Annotated[str, Depends(current_user)],
+):
+    session.exec(delete(Chat).where(Chat.id == id))
+    session.commit()
+    return "Chat deleted"
