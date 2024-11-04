@@ -6,12 +6,20 @@ class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     username: str = Field(unique=True, index=True)
     password: str = Field()
+    is_admin: bool = Field(default=False)
 
 
-class Chat(SQLModel, table=True):
+class ChatBase(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
     title: str = Field(index=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ChatCreate(ChatBase):
+    pass
+
+
+class Chat(ChatBase, table=True):
     user_id: int = Field(foreign_key="user.id")
 
 

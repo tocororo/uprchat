@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, status, Query, HTTPException
-from sqlmodel import Session, select, update, delete
+from sqlmodel import Session, select, delete
 from typing import Annotated
 from ..models import Job, Source_Job, JobShow
 from ..db_config import get_session
+
 
 rt = APIRouter(prefix="/jobs", tags=["jobs"])
 
