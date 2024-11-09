@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 import uvicorn
-
-
+from uprchat.mapper.api import mapper_router
 app = FastAPI()
 
+app.include_router(mapper_router.router)
 
 @app.get("/")
 async def root():
