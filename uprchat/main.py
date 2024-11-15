@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from app.routes import mapper_router
+from app.routes.mapper import mapper_router
 app = FastAPI()
 
 app.include_router(mapper_router.router)
@@ -10,6 +10,6 @@ async def root():
     return {"message": "Hello Upr Chat"}
 
 
-def start():
-    """Launched with `poetry run start` at root level"""
-    uvicorn.run("uprchat.main:app", host="0.0.0.0", port=8000, reload=True)
+# def start():
+#     """Launched with `poetry run start` at root level"""
+#     uvicorn.run("uprchat.main:app", host="0.0.0.0", port=8000, reload=True)
