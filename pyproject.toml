@@ -12,6 +12,9 @@ python = "3.12.3"
 fastapi = "^0.111.1"
 Scrapy = "^2.11.2"
 neo4j = "^5.22.0"
+sqlmodel = "^0.0.22"
+passlib = "^1.7.4"
+bcrypt = "^4.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
