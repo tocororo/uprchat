@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from uprchat.mapper.api import mapper_router
+from app.routes import mapper_router
 app = FastAPI()
 
 app.include_router(mapper_router.router)

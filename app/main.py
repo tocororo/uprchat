@@ -1,3 +1,5 @@
+import uvicorn
+
 from fastapi import FastAPI
 from .db_config import create_db_and_tables
 from .routes import urls, domains, sources, models, collectors, jobs, users, chats,llmqueries
@@ -21,3 +23,8 @@ app.include_router(jobs.rt)
 app.include_router(users.rt)
 app.include_router(chats.rt)
 app.include_router(llmqueries.rt)
+
+
+def start():
+    """Launched with `poetry run start` at root level"""
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
