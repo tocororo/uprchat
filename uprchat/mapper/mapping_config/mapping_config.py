@@ -64,6 +64,6 @@ class MappingConfig:
         self.entities = ordered_entities
 
 
-def load_config_file(configuration_json_file):
+def load_config_file(configuration_json_file) -> MappingConfig:
     config_data = json.loads(configuration_json_file)
     return MappingConfig(config_data)
