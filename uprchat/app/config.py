@@ -6,6 +6,9 @@ class Settings(BaseSettings):
     postgres_database_url: str
     secret: str
     algorithm: str
+    neo4j_uri: str
+    neo4j_user: str
+    neo4j_pass: str
     model_config = SettingsConfigDict(env_file=".env")
 
 

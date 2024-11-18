@@ -3,6 +3,6 @@
 poetry.lock
 
 /venv
-*.pyc
+__pycache__
 
 .env
