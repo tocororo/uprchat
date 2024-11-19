@@ -1,4 +1,5 @@
 from neo4j import GraphDatabase
+from uprchat.mapper.types.mapper_types import Node
 
 
 class Neo4jRepository:
@@ -11,7 +12,7 @@ class Neo4jRepository:
 
         property_string: str = "{"
         for index, key in enumerate(properties):
-            if isinstance(properties[key], int):
+            if isinstance(properties[key], int) or isinstance(properties[key], list):
                 property_string += f"{key}: {properties[key]} "
             else:
                 property_string += f"{key}: '{properties[key]}' "
@@ -20,13 +21,13 @@ class Neo4jRepository:
         property_string += "}"
         return property_string
 
-    def add_node(self, entity_label: str, properties: dict | None = None):
-        if properties is not None:
+    def add_node(self, node:Node):
+        if node.properties is not None:
             query: str = (
-                f"MERGE (:{entity_label} {self._process_node_properties(properties)})"
+                f"MERGE (:{node.label} {self._process_node_properties(node.properties)})"
             )
         else:
-            query: str = f"MERGE(:{entity_label})"
+            query: str = f"MERGE(:{node.label})"
         return self.driver.execute_query(
             query,
             database_="neo4j",
