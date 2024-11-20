@@ -1,0 +1,51 @@
+ [
+    {
+            "id": "PER-001",
+            "name": "Carlos",
+            "last_name": "Pérez",
+            "gender": "M",
+            "country": {
+              "code": "CU",
+              "name": "Cuba"
+            },
+            "email_addresses": ["carlos.perez@uniejemplo.edu"],
+            "institutional_email": "carlos.perez@uniejemplo.edu",
+            "aliases": ["C. Pérez"],
+            "research_interests": ["Inteligencia Artificial"],
+            "key_words": ["Machine Learning", "Data Science"],
+            "academic_titles": ["PhD en Computación"],
+            "roles_sceiba": ["Investigador"],
+            "affiliations": {
+              "id": "ORG-001",
+              "start_date": "2015-09-01",
+              "end_date": null,
+              "label": "Profesor Titular",
+              "roles": ["Investigador Principal"]
+            }
+          },
+          {
+            "id": "PER-002",
+            "name": "Ana",
+            "last_name": "García",
+            "gender": "F",
+            "country": {
+              "code": "CU",
+              "name": "Cuba"
+            },
+            "email_addresses": ["ana.garcia@uniejemplo.edu"],
+            "institutional_email": "ana.garcia@uniejemplo.edu",
+            "aliases": ["A. García"],
+            "research_interests": ["Robótica"],
+            "key_words": ["Automatización", "Control"],
+            "academic_titles": ["MSc en Robótica"],
+            "roles_sceiba": ["Docente"],
+            "affiliations": {
+              "id": "ORG-001",
+              "start_date": "2018-02-15",
+              "end_date": null,
+              "label": "Profesora Asistente",
+              "roles": ["Docente"]
+            }
+          }
+        
+    ]

@@ -1,0 +1,43 @@
+{
+  "name":  "test",
+  "description":  "sceasdas",
+  "mapping_order": [
+    "srcid",
+    "orgid",
+    "perid",
+    "proid",
+    "irouid"
+  ],
+  "entities": [
+    {
+      "pid": "orgid",
+      "name": "Organización",
+      "mapping": {
+        "_class": "http://sceiba.cu/ontology#Organization",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": "http://sceiba.cu/ontology#id",
+          "name": "http://sceiba.cu/ontology#name",
+          "status": "http://sceiba.cu/ontology#status",
+          "aliases": "http://sceiba.cu/ontology#aliases",
+          "email_address": "http://sceiba.cu/ontology#emailAddress",
+          "addresses": {
+            "city": "http://sceiba.cu/ontology#city",
+            "country": "http://sceiba.cu/ontology#country",
+            "country_code": "http://sceiba.cu/ontology#country_code",
+            "line_1": "http://sceiba.cu/ontology#line1",
+            "line_2": "http://sceiba.cu/ontology#line2",
+            "line_3": "http://sceiba.cu/ontology#line3",
+            "postcode": "http://sceiba.cu/ontology#postcode",
+            "state": "http://sceiba.cu/ontology#state",
+            "state_code": "http://sceiba.cu/ontology#stateCode"
+          }
+        }
+        
+      }
+    }
+  ]
+}

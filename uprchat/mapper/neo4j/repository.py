@@ -10,18 +10,18 @@ class Neo4jRepository:
         if not bool(properties):
             return
 
-        property_string: str = "{"
+        property_string: str = " {"
         for index, key in enumerate(properties):
             if isinstance(properties[key], int) or isinstance(properties[key], list):
-                property_string += f"{key}: {properties[key]} "
+                property_string += f"`{key}`: {properties[key]} "
             else:
-                property_string += f"{key}: '{properties[key]}' "
+                property_string += f"`{key}`: '{properties[key]}' "
             if index != len(properties) - 1:
                 property_string += ", "
         property_string += "}"
         return property_string
 
-    def add_node(self, node:Node):
+    def add_node(self, node: Node):
         if node.properties is not None:
             query: str = (
                 f"MERGE (:{node.label} {self._process_node_properties(node.properties)})"
@@ -46,6 +46,7 @@ class Neo4jRepository:
             f"MATCH (a:{start_label} {{id: '{start_id}'}}), (b:{end_label} {{id: '{end_id}'}})"
             f"MERGE (a)-[r:{relation_label}]->(b)"
         )
+        print("the query", query)
         return self.driver.execute_query(query, database_="neo4j")
 
     def drop_graph(self):

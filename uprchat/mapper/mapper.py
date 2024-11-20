@@ -7,12 +7,13 @@ from uprchat.mapper.neo4j.repository import Neo4jRepository
 from uprchat.app.config import get_settings
 from .types.mapper_types import Node, NestedNode
 import uuid as uuid_pkg
+import json
 
 
 class Mapper:
-    def __init__(self, config_file, data):
+    def __init__(self, config_file, data_file):
         self.config: MappingConfig = load_config_file(config_file)
-        self.data = data
+        self.data = json.loads(data_file)
         self.relations = []
         self.st = get_settings()
         self.repository = Neo4jRepository(
@@ -21,27 +22,51 @@ class Mapper:
 
     def start(self):
         for entity_config in self.config.entities:
+            print("_______the entity config")
+            print(entity_config.required)
 
-            self.repository.drop_graph()
+            # self.repository.drop_graph()
             self.map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
 
-    def map_instances(self, entity_config: EntityMapping, entity_data):
+        print("all relations:", self.relations)
+        if self.relations:
+            for relation in self.relations:
+                # {"fromLabel":node.label,"fromId": node.id, "toId": target_id,"targetLabel": target_label,"label": relation_label}
+                print("the relation : ", relation)
+                self.repository.add_relation(
+                    relation.get("fromId"),
+                    relation.get("fromLabel"),
+                    relation.get("toId"),
+                    relation.get("targetLabel"),
+                    relation.get("label"),
+                )
+
+    def map_instances(self, entity_config: EntityMapping, entity_data: dict):
         if entity_data is not None:
             for item in entity_data:
-                node = Node(entity_config.name, item.id)
-                
+                print("________the item of the data__________")
+                print(item)
+                node = Node(entity_config.name, item.get("id"))
+                # node.properties.update(node.id)#TODO improve the
+
                 if entity_config.validate_required(item):
                     self.process_data_properties_in_instance(
                         entity_config.properties, item, node
                     )
-                    
+
                 self.repository.add_node(node)
                 if node.nested_nodes:
                     for nested_node in node.nested_nodes:
                         self.repository.add_node(nested_node)
-                        self.repository.add_relation(node.id, node.label,nested_node.id, nested_node.label, "HAS")
+                        self.repository.add_relation(
+                            node.id,
+                            node.label,
+                            nested_node.id,
+                            nested_node.label,
+                            "HAS",
+                        )
 
     def process_data_properties_in_instance(
         self, properties_config: dict, data_instance: dict, node: Node
@@ -64,7 +89,9 @@ class Mapper:
                             property_key, relation, properties_config, node
                         )
             elif isinstance(property_value, dict):
-                self._process_relation(property_key, property_value, properties_config)
+                self._process_relation(
+                    property_key, property_value, properties_config, node
+                )
 
         # Literal
         elif isinstance(property_value, str):
@@ -86,8 +113,8 @@ class Mapper:
         property_config_value = properties_config.get(property_key)
         if isinstance(property_config_value, dict) and isinstance(property_value, dict):
 
-            nested_node = NestedNode(property_key, uuid_pkg.uuid5(),node.id)
-            
+            nested_node = NestedNode(property_key, uuid_pkg.uuid4(), node.id)
+
             for new_key in property_config_value.keys():
                 if property_value.get(new_key) and isinstance(
                     property_value.get(new_key), str
@@ -133,7 +160,7 @@ class Mapper:
             )
 
     def _process_primitive_types(
-        self, property_key, property_value, properties_config, node: Node|NestedNode
+        self, property_key, property_value, properties_config, node: Node | NestedNode
     ):
         node.properties.update({properties_config.get(property_key): property_value})
 
@@ -143,10 +170,17 @@ class Mapper:
         print(f"Processing relation: {property_key}")
         relation_config: dict = properties_config.get(property_key)
         target_id = target_object.get(relation_config.get("__relation"))
+        target_label = relation_config.get("__target")
         relation_label = relation_config.get("__relation_label")
 
         self.relations.append(
-            {"from": node.id, "to": target_id, "label": relation_label}
+            {
+                "fromLabel": node.label,
+                "fromId": node.id,
+                "toId": target_id,
+                "targetLabel": target_label,
+                "label": relation_label,
+            }
         )
 
     # def _process_identifiers_dict(self, subject, identifiers_dict: dict, identifiers_config:
