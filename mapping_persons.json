@@ -24,6 +24,7 @@
           "last_name": "http://sceiba.cu/ontology#lastName",
           "gender": "http://sceiba.cu/ontology#gender",
           "country": {
+            "__label":"LIVES_IN",
             "code": "https://countrynames.com/model/#code",
             "name": "https://countrynames.com/model/#name"
           },

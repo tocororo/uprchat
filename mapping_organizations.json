@@ -25,6 +25,7 @@
           "aliases": "http://sceiba.cu/ontology#aliases",
           "email_address": "http://sceiba.cu/ontology#emailAddress",
           "addresses": {
+            "__label":"LOCATED_IN",
             "city": "http://sceiba.cu/ontology#city",
             "country": "http://sceiba.cu/ontology#country",
             "country_code": "http://sceiba.cu/ontology#country_code",

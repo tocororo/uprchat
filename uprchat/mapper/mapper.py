@@ -25,12 +25,11 @@ class Mapper:
             print("_______the entity config")
             print(entity_config.required)
 
-            # self.repository.drop_graph()
+            self.repository.drop_graph()
             self.map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
 
-        print("all relations:", self.relations)
         if self.relations:
             for relation in self.relations:
                 # {"fromLabel":node.label,"fromId": node.id, "toId": target_id,"targetLabel": target_label,"label": relation_label}
@@ -58,14 +57,14 @@ class Mapper:
 
                 self.repository.add_node(node)
                 if node.nested_nodes:
-                    for nested_node in node.nested_nodes:
+                    for nested_node in node.nested_nodes:  
                         self.repository.add_node(nested_node)
                         self.repository.add_relation(
                             node.id,
                             node.label,
                             nested_node.id,
                             nested_node.label,
-                            "HAS",
+                            nested_node.get_relation_label(),
                         )
 
     def process_data_properties_in_instance(
@@ -116,6 +115,9 @@ class Mapper:
             nested_node = NestedNode(property_key, uuid_pkg.uuid4(), node.id)
 
             for new_key in property_config_value.keys():
+                if "__label" == new_key:
+                    nested_node.set_relation_label(property_config_value.get(new_key))
+                
                 if property_value.get(new_key) and isinstance(
                     property_value.get(new_key), str
                 ):
