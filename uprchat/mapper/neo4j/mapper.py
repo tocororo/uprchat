@@ -1,32 +1,27 @@
 from uprchat.mapper.mapping_config.mapping_config import (
-    load_config_file,
     MappingConfig,
     EntityMapping,
 )
-from uprchat.mapper.neo4j.repository import Neo4jRepository
-from uprchat.app.config import get_settings
-from .types.mapper_types import Node, NestedNode
+from ..types.mapper_types import Node, NestedNode
 import uuid as uuid_pkg
 import json
+from uprchat.mapper.neo4j.repository import Neo4jRepository
 
 
 class Mapper:
-    def __init__(self, config_file, data_file):
-        self.config: MappingConfig = load_config_file(config_file)
-        self.data = json.loads(data_file)
+    def __init__(self, config: MappingConfig, data: dict, repository: Neo4jRepository):
+        self.config = config
+        self.data = data
         self.relations = []
-        self.st = get_settings()
-        self.repository = Neo4jRepository(
-            self.st.neo4j_uri, self.st.neo4j_user, self.st.neo4j_pass
-        )
+        self.repository = repository
 
     def start(self):
         for entity_config in self.config.entities:
             print("_______the entity config")
             print(entity_config.required)
 
-            self.repository.drop_graph()
-            self.map_instances(
+            # self.repository.drop_graph()
+            self._map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
 
@@ -42,7 +37,7 @@ class Mapper:
                     relation.get("label"),
                 )
 
-    def map_instances(self, entity_config: EntityMapping, entity_data: dict):
+    def _map_instances(self, entity_config: EntityMapping, entity_data: dict):
         if entity_data is not None:
             for item in entity_data:
                 print("________the item of the data__________")
@@ -57,7 +52,7 @@ class Mapper:
 
                 self.repository.add_node(node)
                 if node.nested_nodes:
-                    for nested_node in node.nested_nodes:  
+                    for nested_node in node.nested_nodes:
                         self.repository.add_node(nested_node)
                         self.repository.add_relation(
                             node.id,
@@ -117,7 +112,7 @@ class Mapper:
             for new_key in property_config_value.keys():
                 if "__label" == new_key:
                     nested_node.set_relation_label(property_config_value.get(new_key))
-                
+
                 if property_value.get(new_key) and isinstance(
                     property_value.get(new_key), str
                 ):

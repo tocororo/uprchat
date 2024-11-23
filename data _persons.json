@@ -29,6 +29,7 @@
             "last_name": "García",
             "gender": "F",
             "country": {
+              "__id":"code",
               "code": "CU",
               "name": "Cuba"
             },

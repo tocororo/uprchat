@@ -2,9 +2,21 @@ from neo4j import GraphDatabase
 from uprchat.mapper.types.mapper_types import Node
 
 
-class Neo4jRepository:
+class Singleton:
+    _instance = None
+
+    def __new__(cls, url, user, password):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+            cls._instance.url = url
+            cls._instance.user = user
+            cls._instance.password = password
+        return cls._instance
+
+class Neo4jRepository(Singleton):
     def __init__(self, uri, user, password):
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        self._driver = GraphDatabase.driver(uri, auth=(user, password),database="neo4j")
+        self.DATABASE = "neo4j"
 
     def _process_node_properties(self, properties: dict):
         if not bool(properties):
@@ -28,9 +40,8 @@ class Neo4jRepository:
             )
         else:
             query: str = f"MERGE(:{node.label})"
-        return self.driver.execute_query(
-            query,
-            database_="neo4j",
+        return self._driver.execute_query(
+            query
         )
 
     def add_relation(
@@ -46,17 +57,25 @@ class Neo4jRepository:
             f"MATCH (a:{start_label} {{id: '{start_id}'}}), (b:{end_label} {{id: '{end_id}'}})"
             f"MERGE (a)-[r:{relation_label}]->(b)"
         )
-        print("the query", query)
-        return self.driver.execute_query(query, database_="neo4j")
+        return self._driver.execute_query(query)
 
     def drop_graph(self):
-        self.driver.execute_query(
-            "MATCH (a) -[r] -> () DELETE a, r ", database_="neo4j"
+        self._driver.execute_query(
+            "MATCH (a) -[r] -> () DELETE a, r "
         )
-        self.driver.execute_query("MATCH (a) DELETE a", database_="neo4j")
+        self._driver.execute_query("MATCH (a) DELETE a")
+
+    def get_graph(self):
+        return self._driver.execute_query("MATCH (n) RETURN n")
+
+    def execute_external_query(
+        self,
+        query,
+    ):
+        self._driver.execute_query(query)
 
     def close(self):
-        self.driver.close()
+        self._driver.close()
 
     # def update_node(self, entity_label, properties):
     #     query:str = (

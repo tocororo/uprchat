@@ -71,8 +71,3 @@ class MappingConfig:
         #     entities_map[pid] for pid in self._order if pid in entities_map
         # ]
         self.entities = entities
-
-
-def load_config_file(configuration_json_file) -> MappingConfig:
-    config_data = json.loads(configuration_json_file)
-    return MappingConfig(config_data)
