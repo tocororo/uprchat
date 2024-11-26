@@ -1,5 +1,5 @@
 from neo4j import GraphDatabase
-from uprchat.mapper.types.mapper_types import Node
+from uprchat.mapper.types.mapper_types import Node, Relation
 
 
 class Singleton:
@@ -13,9 +13,12 @@ class Singleton:
             cls._instance.password = password
         return cls._instance
 
+
 class Neo4jRepository(Singleton):
     def __init__(self, uri, user, password):
-        self._driver = GraphDatabase.driver(uri, auth=(user, password),database="neo4j")
+        self._driver = GraphDatabase.driver(
+            uri, auth=(user, password), database="neo4j"
+        )
         self.DATABASE = "neo4j"
 
     def _process_node_properties(self, properties: dict):
@@ -40,29 +43,88 @@ class Neo4jRepository(Singleton):
             )
         else:
             query: str = f"MERGE(:{node.label})"
-        return self._driver.execute_query(
-            query
-        )
+        return self._driver.execute_query(query)
+
+    def get_node_by_properties(self, node: Node):
+        """get the first match for the node search
+            if the properties are empty the function will no return any value.
+        Returns:
+            the first node that match the search params
+        """
+
+        if not node.properties or not node.label:
+            return print(
+                "Error the properties and label pf the node are mandatory for a search"
+            )
+        query = f"MATCH (node:{node.label} {self._process_node_properties(node.properties)}) RETURN node"
+        result = self._driver.execute_query(query)
+
+        if len(result.records) > 1:
+            print("Warning: the query return more that one results")
+        return result.records[0]
+
+    # def make_update_query_for_properties(self,query_variable:str, properties:dict):
+    #     query = []
+    #     for key in properties.keys():
+    #         query.append(f" SET {query_variable} = ")
 
     def add_relation(
         self,
-        start_id: str,
-        start_label: str,
-        end_id: str,
-        end_label: str,
-        relation_label: str,
+        relation: Relation,
     ):
-
+        # Alternative property preparation for queries
+        # origin_query = (f"MERGE (origin:{relation.start_node.label} {{id:'{relation.start_node.id}'}})")
+        # origin_query += self._make_properties_queries("origin", relation.start_node.properties)
+        # target_query = (f"MERGE (target:{relation.target_node.label} {{id:'{relation.target_node.id}'}})")
+        # target_query += self._make_properties_queries("target", relation.target_node.properties)
+        
         query: str = (
-            f"MATCH (a:{start_label} {{id: '{start_id}'}}), (b:{end_label} {{id: '{end_id}'}})"
-            f"MERGE (a)-[r:{relation_label}]->(b)"
+            f"MERGE (origin:{relation.start_node.label} {{id:'{relation.start_node.id}'}})"
+            "ON CREATE"
+            f"  SET origin += {self._process_node_properties(relation.start_node.properties)}"
+            "ON MATCH"
+            f"  SET origin += {self._process_node_properties(relation.start_node.properties)}"
+            f"MERGE (target:{relation.target_node.label} {{id:'{relation.target_node.id}'}})"
+            "ON CREATE"
+            f"  SET target += {self._process_node_properties(relation.target_node.properties)}"
+            "ON MATCH"
+            f"  SET target += {self._process_node_properties(relation.target_node.properties)}"
         )
-        return self._driver.execute_query(query)
+        
+        # query = (origin_query + target_query)
+        query += (self._make_relation_query(relation))
+        print(query)
+        return self._driver.execute_query(query)        
+    
+    def _make_properties_queries(self,variable:str, properties:dict):
+        on_match_query = (" ON MATCH SET ")    
+        on_create_query = (" ON CREATE SET ")    
+        
+        for index, key in enumerate(properties):
+            if isinstance(properties[key], list) or isinstance(properties[key], int):
+                on_create_query += (f"{variable}.`{key}` = {properties[key]}")
+                on_match_query += (f"{variable}.`{key}` = {properties[key]}")
+            else:
+                on_create_query += (f"{variable}.`{key}` = '{properties[key]}'")
+                on_match_query += (f"{variable}.`{key}` = '{properties[key]}'")
+            
+            if index < len(properties)-1:
+                on_create_query+=(", ")
+                on_match_query+=(", ")
+            else :
+                on_create_query+=(" ")
+                on_match_query+=(" ")
+        
+        return (on_match_query + on_create_query)
+    
+    def _make_relation_query(self, relation:Relation):
+        if relation.properties:
+            return f"MERGE (origin)-[r:{relation.label} {self._process_node_properties(relation.properties)}]->(target)"
+        return f"MERGE (origin)-[r:{relation.label}]->(target)"
+        
 
     def drop_graph(self):
-        self._driver.execute_query(
-            "MATCH (a) -[r] -> () DELETE a, r "
-        )
+        self._driver.execute_query("MATCH (a) -[r] -> () DELETE a, r ")
         self._driver.execute_query("MATCH (a) DELETE a")
 
     def get_graph(self):

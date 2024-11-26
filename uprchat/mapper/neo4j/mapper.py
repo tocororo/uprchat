@@ -2,7 +2,7 @@ from uprchat.mapper.mapping_config.mapping_config import (
     MappingConfig,
     EntityMapping,
 )
-from ..types.mapper_types import Node, NestedNode
+from ..types.mapper_types import Node, Relation
 import uuid as uuid_pkg
 import json
 from uprchat.mapper.neo4j.repository import Neo4jRepository
@@ -20,29 +20,17 @@ class Mapper:
             print("_______the entity config")
             print(entity_config.required)
 
-            # self.repository.drop_graph()
+            self.repository.drop_graph()
             self._map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
-
-        if self.relations:
-            for relation in self.relations:
-                # {"fromLabel":node.label,"fromId": node.id, "toId": target_id,"targetLabel": target_label,"label": relation_label}
-                print("the relation : ", relation)
-                self.repository.add_relation(
-                    relation.get("fromId"),
-                    relation.get("fromLabel"),
-                    relation.get("toId"),
-                    relation.get("targetLabel"),
-                    relation.get("label"),
-                )
-
+            
     def _map_instances(self, entity_config: EntityMapping, entity_data: dict):
         if entity_data is not None:
             for item in entity_data:
-                print("________the item of the data__________")
-                print(item)
+                
                 node = Node(entity_config.name, item.get("id"))
+
                 # node.properties.update(node.id)#TODO improve the
 
                 if entity_config.validate_required(item):
@@ -50,20 +38,17 @@ class Mapper:
                         entity_config.properties, item, node
                     )
 
-                self.repository.add_node(node)
-                if node.nested_nodes:
-                    for nested_node in node.nested_nodes:
-                        self.repository.add_node(nested_node)
-                        self.repository.add_relation(
-                            node.id,
-                            node.label,
-                            nested_node.id,
-                            nested_node.label,
-                            nested_node.get_relation_label(),
-                        )
+                if node.relations:
+                    for relation in node.relations:
+                        self.repository.add_relation(relation)
+                else:
+                    self.repository.add_node(node)
 
     def process_data_properties_in_instance(
-        self, properties_config: dict, data_instance: dict, node: Node
+        self,
+        properties_config: dict,
+        data_instance: dict,
+        node: Node,
     ):
         for property_key in properties_config.keys():
             value = data_instance.get(property_key)
@@ -71,7 +56,11 @@ class Mapper:
                 self._process_property(property_key, value, properties_config, node)
 
     def _process_property(
-        self, property_key: str, property_value, properties_config: dict, node: Node
+        self,
+        property_key: str,
+        property_value,
+        properties_config: dict,
+        node: Node,
     ):
         if "__relation" in properties_config[property_key]:
             if isinstance(property_value, list):
@@ -107,11 +96,13 @@ class Mapper:
         property_config_value = properties_config.get(property_key)
         if isinstance(property_config_value, dict) and isinstance(property_value, dict):
 
-            nested_node = NestedNode(property_key, uuid_pkg.uuid4(), node.id)
+            nested_node = Node(property_key, uuid_pkg.uuid4())
+            relation_label = "HAS"
 
             for new_key in property_config_value.keys():
-                if "__label" == new_key:
-                    nested_node.set_relation_label(property_config_value.get(new_key))
+                if "__predicated" == new_key:
+                    if property_config_value.get(new_key):
+                        relation_label = property_config_value.get(new_key)
 
                 if property_value.get(new_key) and isinstance(
                     property_value.get(new_key), str
@@ -141,7 +132,7 @@ class Mapper:
                     )
 
             if nested_node.properties:
-                node.nested_nodes.append(nested_node)
+                node.relations.append(Relation(relation_label, {}, node, nested_node))
 
     def _process_list(
         self, property_key, property_value, property_config: dict, node: Node
@@ -157,27 +148,86 @@ class Mapper:
             )
 
     def _process_primitive_types(
-        self, property_key, property_value, properties_config, node: Node | NestedNode
+        self, property_key, property_value, properties_config, node: Node
     ):
         node.properties.update({properties_config.get(property_key): property_value})
 
     def _process_relation(
-        self, property_key, target_object: dict, properties_config: dict, node: Node
+        self,
+        property_key,
+        target_object: dict,
+        properties_config: dict,
+        node: Node,
     ):
         print(f"Processing relation: {property_key}")
         relation_config: dict = properties_config.get(property_key)
-        target_id = target_object.get(relation_config.get("__relation"))
-        target_label = relation_config.get("__target")
-        relation_label = relation_config.get("__relation_label")
+        target_id, target_label, relation_label = ("",)*3
+        node_properties = {}
+        relation_properties = {}
 
-        self.relations.append(
-            {
-                "fromLabel": node.label,
-                "fromId": node.id,
-                "toId": target_id,
-                "targetLabel": target_label,
-                "label": relation_label,
-            }
+        for key in relation_config:
+            if "__relation" == key:
+                target_id = target_object.get(relation_config.get(key))
+            elif "__target" == key:
+                target_label = relation_config.get(key)
+            elif "__predicate" == key:
+                relation_label = relation_config.get(key)
+            elif "relation_properties" == key:
+                relation_properties_config: dict = relation_config.get(key)
+
+                for relation_config_key in relation_properties_config.keys():
+                    relation_value = target_object.get(relation_config_key)
+
+                    if not relation_value:
+                        continue
+
+                    if isinstance(relation_value, dict):
+                        print(
+                            "Error: a object can not be a assigned to relation properties"
+                        )
+                        continue
+
+                    if isinstance(relation_value, str):
+                        relation_properties.update(
+                            {
+                                relation_properties_config.get(
+                                    relation_config_key
+                                ): relation_value
+                            }
+                        )
+                    elif isinstance(relation_value, list):
+                        if isinstance(relation_value[0], dict):
+                            print(
+                                "Error: a object can not be a assigned to relation properties"
+                            )
+                            continue
+
+                        if isinstance(relation_value[0], str):
+                            relation_properties.update(
+                                {
+                                    relation_properties_config.get(
+                                        relation_config_key
+                                    ): relation_value
+                                }
+                            )
+            # TODO implement the target properties use case.
+            else:
+                if not target_object.get(key): continue
+                
+                node_properties.update(
+                    {
+                        relation_config.get(key): target_object.get(
+                            key
+                        )
+                    }
+                )
+                print("______NODE PROPERTIES________")
+                print(node_properties)
+
+        node.relations.append(
+            Relation(
+                relation_label, relation_properties, node, Node(target_label, target_id, node_properties)
+            )
         )
 
     # def _process_identifiers_dict(self, subject, identifiers_dict: dict, identifiers_config:

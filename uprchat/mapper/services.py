@@ -6,27 +6,29 @@ from uprchat.mapper.mapping_config.mapping_config import (
     MappingConfig,
 )
 
+
 class RepositoryService:
     st = get_settings()
     repository = Neo4jRepository(st.neo4j_uri, st.neo4j_user, st.neo4j_pass)
-    
+
     def __init__(self):
         super().__init__()
 
     def get_repository(self):
         return self.repository
-    
+
     def clean_graph_db(self):
         self.repository.drop_graph()
-        
-    def execute_external_query(self,query:str):
+
+    def execute_external_query(self, query: str):
         self.repository.execute_external_query(query)
-    
+
     def get_graph(self):
         return self.repository.get_graph()
-    
+
+
 class MapperService:
-    
+
     def __init__(self, mapping_config_file, data_to_map_file):
         self.mapper = Mapper(
             MappingConfig(json.loads(mapping_config_file)),
@@ -36,7 +38,3 @@ class MapperService:
 
     def start_mapping(self):
         self.mapper.start()
-    
-   
-        
-    

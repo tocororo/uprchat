@@ -24,7 +24,9 @@
           "last_name": "http://sceiba.cu/ontology#lastName",
           "gender": "http://sceiba.cu/ontology#gender",
           "country": {
-            "__label":"LIVES_IN",
+            "__relation": "code",
+            "__predicate":"LIVES_IN",
+            "__target": "Country",
             "code": "https://countrynames.com/model/#code",
             "name": "https://countrynames.com/model/#name"
           },
@@ -37,13 +39,17 @@
           "roles_sceiba": "http://sceiba.cu/ontology#role",
           "affiliations": {
             "__relation": "id",
-            "__relation_label":"AFFILIATED_TO",
+            "__predicate":"AFFILIATED_TO",
             "__target": "Organización",
+            "relation_properties":{
+              "start_date": "http://sceiba.cu/ontology#StartDate",
+              "end_date": "http://sceiba.cu/ontology#EndDate",
+              "roles": "http://sceiba.cu/ontology#Roles"
+            },
             "id": "http://sceiba.cu/ontology#affiliatedTo",
-            "start_date": "http://sceiba.cu/ontology#StartDate",
-            "end_date": "http://sceiba.cu/ontology#EndDate",
-            "label": "http://sceiba.cu/ontology#label",
-            "roles": "http://sceiba.cu/ontology#Roles"
+            "name":"Orga-name"
+
+            
           }
         }
       }

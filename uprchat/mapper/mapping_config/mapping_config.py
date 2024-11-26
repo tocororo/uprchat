@@ -17,11 +17,6 @@ class EntityMapping:
 
     def validate_required(self, instance):
 
-        print("_____the required config to validate_______")
-        print(self.config)
-        print("_____the required fiends to validate_______")
-        print(self.required)
-
         """Validates that all required attributes are present in the instance
 
             Args:
