@@ -1,14 +1,18 @@
+import json
+
+
 class Data_Iterator:
-    def __init__(self, data, page, per_page):
-        self.data = data
-        self.current_page = page
-        self.items_per_page = per_page
+    def __init__(self, data, stop_at: int | None = None):
+        self.data = json.loads(data)
+        self.stop_at = stop_at
+        self.position = -1
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if False:
-            pass
-        else:
+        self.position += 1
+        if self.stop_at and self.position == self.stop_at:
             raise StopIteration
+
+        return self.data[self.position]

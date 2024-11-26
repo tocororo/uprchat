@@ -13,10 +13,10 @@ class EntityMapping:
         # self.destination_class = self.config["_class"]
         self.required = self.config.get("mapping").get("required")
         self.properties = self.config.get("mapping").get("properties")
-        # self.valuesof = self.config["valuesOf"]
+        if self.properties.get("identifiers"):
+            self.valuesof = self.config.get("mapping").get("valuesOf")
 
     def validate_required(self, instance):
-
         """Validates that all required attributes are present in the instance
 
             Args:

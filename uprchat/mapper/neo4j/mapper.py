@@ -2,6 +2,7 @@ from uprchat.mapper.mapping_config.mapping_config import (
     MappingConfig,
     EntityMapping,
 )
+from uprchat.mapper.utils.data_iterator import Data_Iterator
 from ..types.mapper_types import Node, Relation
 import uuid as uuid_pkg
 import json
@@ -9,7 +10,9 @@ from uprchat.mapper.neo4j.repository import Neo4jRepository
 
 
 class Mapper:
-    def __init__(self, config: MappingConfig, data: dict, repository: Neo4jRepository):
+    def __init__(
+        self, config: MappingConfig, data: Data_Iterator, repository: Neo4jRepository
+    ):
         self.config = config
         self.data = data
         self.relations = []
@@ -24,18 +27,18 @@ class Mapper:
             self._map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
-            
-    def _map_instances(self, entity_config: EntityMapping, entity_data: dict):
+
+    def _map_instances(self, entity_config: EntityMapping, entity_data: Data_Iterator):
         if entity_data is not None:
             for item in entity_data:
-                
+
                 node = Node(entity_config.name, item.get("id"))
 
                 # node.properties.update(node.id)#TODO improve the
 
                 if entity_config.validate_required(item):
                     self.process_data_properties_in_instance(
-                        entity_config.properties, item, node
+                        entity_config.properties, item, entity_config.valuesof, node
                     )
 
                 if node.relations:
@@ -48,20 +51,36 @@ class Mapper:
         self,
         properties_config: dict,
         data_instance: dict,
+        values_of_config,
         node: Node,
     ):
         for property_key in properties_config.keys():
             value = data_instance.get(property_key)
             if value:
-                self._process_property(property_key, value, properties_config, node)
+                self._process_property(
+                    property_key, value, properties_config, values_of_config, node
+                )
 
     def _process_property(
         self,
         property_key: str,
         property_value,
         properties_config: dict,
+        values_of_config,
         node: Node,
     ):
+        if "identifiers" == property_key and isinstance(property_value, list):
+            print("process identifiers...")
+
+            for identifier in property_value:
+                node.properties.update(
+                    self._process_identifiers_dict(
+                        identifier,
+                        properties_config.get("identifiers"),
+                        values_of_config,
+                    )
+                )
+
         if "__relation" in properties_config[property_key]:
             if isinstance(property_value, list):
                 print("process relation...")
@@ -134,11 +153,29 @@ class Mapper:
             if nested_node.properties:
                 node.relations.append(Relation(relation_label, {}, node, nested_node))
 
+    def _process_identifiers_dict(
+        self,
+        identifier_data: dict,
+        identifier_config: dict,
+        values_of_entity_config: dict,
+    ):
+        __predicate = identifier_config.get("__predicate")
+
+        values_of = str(identifier_config.get(__predicate)).split(":")[1]
+
+        __predicate_source = identifier_data.get(__predicate)
+
+        predicate = values_of_entity_config.get(values_of).get(__predicate_source)
+
+        object_value = identifier_data.get(identifier_config.get("__object"))
+
+        return {predicate: object_value}
+
     def _process_list(
         self, property_key, property_value, property_config: dict, node: Node
     ):
         dict_config = property_config.get(property_key)
-        if isinstance(property_value[0], dict) and isinstance(dict_config, dic):
+        if isinstance(property_value[0], dict) and isinstance(dict_config, dict):
             for dic in property_value:
                 self._process_dict(property_key, dic, dict_config, node)
 
@@ -161,7 +198,7 @@ class Mapper:
     ):
         print(f"Processing relation: {property_key}")
         relation_config: dict = properties_config.get(property_key)
-        target_id, target_label, relation_label = ("",)*3
+        target_id, target_label, relation_label = ("",) * 3
         node_properties = {}
         relation_properties = {}
 
@@ -212,24 +249,20 @@ class Mapper:
                             )
             # TODO implement the target properties use case.
             else:
-                if not target_object.get(key): continue
-                
+                if not target_object.get(key):
+                    continue
+
                 node_properties.update(
-                    {
-                        relation_config.get(key): target_object.get(
-                            key
-                        )
-                    }
+                    {relation_config.get(key): target_object.get(key)}
                 )
                 print("______NODE PROPERTIES________")
                 print(node_properties)
 
         node.relations.append(
             Relation(
-                relation_label, relation_properties, node, Node(target_label, target_id, node_properties)
+                relation_label,
+                relation_properties,
+                node,
+                Node(target_label, target_id, node_properties),
             )
         )
-
-    # def _process_identifiers_dict(self, subject, identifiers_dict: dict, identifiers_config:
-    # dict, valuesof_config: dict):
-    #     pass

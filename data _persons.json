@@ -15,6 +15,24 @@
             "key_words": ["Machine Learning", "Data Science"],
             "academic_titles": ["PhD en Computación"],
             "roles_sceiba": ["Investigador"],
+            "identifiers": [
+            {
+              "idtype": "grid",
+              "value": "grid.1310.3"
+            },
+            {
+              "idtype": "orgref",
+              "value": "9477251"
+            },
+            {
+              "idtype": "wkdata",
+              "value": "Q5260531"
+            },
+            {
+              "idtype": "ror",
+              "value": "https://ror.org/017wrhq72"
+            }
+          ],
             "affiliations": {
               "name":"Universidad de Habana",
               "id": "ORG-001",

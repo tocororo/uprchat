@@ -77,7 +77,7 @@ class Neo4jRepository(Singleton):
         # origin_query += self._make_properties_queries("origin", relation.start_node.properties)
         # target_query = (f"MERGE (target:{relation.target_node.label} {{id:'{relation.target_node.id}'}})")
         # target_query += self._make_properties_queries("target", relation.target_node.properties)
-        
+
         query: str = (
             f"MERGE (origin:{relation.start_node.label} {{id:'{relation.start_node.id}'}})"
             "ON CREATE"
@@ -90,38 +90,37 @@ class Neo4jRepository(Singleton):
             "ON MATCH"
             f"  SET target += {self._process_node_properties(relation.target_node.properties)}"
         )
-        
+
         # query = (origin_query + target_query)
-        query += (self._make_relation_query(relation))
+        query += self._make_relation_query(relation)
         print(query)
-        return self._driver.execute_query(query)        
-    
-    def _make_properties_queries(self,variable:str, properties:dict):
-        on_match_query = (" ON MATCH SET ")    
-        on_create_query = (" ON CREATE SET ")    
-        
+        return self._driver.execute_query(query)
+
+    def _make_properties_queries(self, variable: str, properties: dict):
+        on_match_query = " ON MATCH SET "
+        on_create_query = " ON CREATE SET "
+
         for index, key in enumerate(properties):
             if isinstance(properties[key], list) or isinstance(properties[key], int):
-                on_create_query += (f"{variable}.`{key}` = {properties[key]}")
-                on_match_query += (f"{variable}.`{key}` = {properties[key]}")
+                on_create_query += f"{variable}.`{key}` = {properties[key]}"
+                on_match_query += f"{variable}.`{key}` = {properties[key]}"
             else:
-                on_create_query += (f"{variable}.`{key}` = '{properties[key]}'")
-                on_match_query += (f"{variable}.`{key}` = '{properties[key]}'")
-            
-            if index < len(properties)-1:
-                on_create_query+=(", ")
-                on_match_query+=(", ")
-            else :
-                on_create_query+=(" ")
-                on_match_query+=(" ")
-        
-        return (on_match_query + on_create_query)
-    
-    def _make_relation_query(self, relation:Relation):
+                on_create_query += f"{variable}.`{key}` = '{properties[key]}'"
+                on_match_query += f"{variable}.`{key}` = '{properties[key]}'"
+
+            if index < len(properties) - 1:
+                on_create_query += ", "
+                on_match_query += ", "
+            else:
+                on_create_query += " "
+                on_match_query += " "
+
+        return on_match_query + on_create_query
+
+    def _make_relation_query(self, relation: Relation):
         if relation.properties:
             return f"MERGE (origin)-[r:{relation.label} {self._process_node_properties(relation.properties)}]->(target)"
         return f"MERGE (origin)-[r:{relation.label}]->(target)"
-        
 
     def drop_graph(self):
         self._driver.execute_query("MATCH (a) -[r] -> () DELETE a, r ")
