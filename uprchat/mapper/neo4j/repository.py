@@ -133,7 +133,7 @@ class Neo4jRepository(Singleton):
         self,
         query,
     ):
-        self._driver.execute_query(query)
+        return self._driver.execute_query(query)
 
     def close(self):
         self._driver.close()

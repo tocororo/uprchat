@@ -21,7 +21,15 @@ class RepositoryService:
         self.repository.drop_graph()
 
     def execute_external_query(self, query: str):
-        self.repository.execute_external_query(query)
+        if (
+            "MERGE" in query.upper()
+            or "CREATE" in query.upper()
+            or "DELETE" in query.upper()
+        ):
+            return "Error: only consult queries are allowed"
+        elif not "RETURN" in query.upper():
+            return "Error: The query must have a return statement"
+        return self.repository.execute_external_query(query)
 
     def get_graph(self):
         return self.repository.get_graph()

@@ -10,8 +10,13 @@ router = APIRouter(
 
 @router.get("/graph")
 def get_graph():
-    some = RepositoryService().get_graph()
-    return some.records
+    response = RepositoryService().get_graph()
+    return response.records
+
+
+@router.get("/query")
+def execute_query(query: str):
+    return RepositoryService().execute_external_query(query)
 
 
 @router.post("/start")
