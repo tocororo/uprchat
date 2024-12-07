@@ -17,6 +17,11 @@
           "id",
           "name"
         ],
+        "_vectorize":{
+          "strategy":"Document Embeddings",
+          "values":["name", "last_name"],
+          "phrase":":name :last_name es una persona"
+        },
         "_class": "http://sceiba.cu/ontology#Person",
         "properties": {
           "identifiers": {

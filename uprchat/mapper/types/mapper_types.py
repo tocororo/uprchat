@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class Node:
     def __init__(self, label: str, id: str, properties: dict = {}):
         self.label = label
@@ -15,3 +18,9 @@ class Relation:
         self.properties = properties
         self.start_node = start_node
         self.target_node = target_node
+
+
+class VectorStrategies(Enum):
+    BoW = "Bag-of-Words"
+    TF_IDF = "Term Frequency-Inverse Document Frequency"
+    DE = "Document Embeddings"

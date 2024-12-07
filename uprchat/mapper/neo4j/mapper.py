@@ -5,8 +5,8 @@ from uprchat.mapper.mapping_config.mapping_config import (
 from uprchat.mapper.utils.data_iterator import Data_Iterator
 from ..types.mapper_types import Node, Relation
 import uuid as uuid_pkg
-import json
 from uprchat.mapper.neo4j.repository import Neo4jRepository
+from uprchat.mapper.vectors.vectorizer import VectorManager
 
 
 class Mapper:
@@ -20,10 +20,8 @@ class Mapper:
 
     def start(self):
         for entity_config in self.config.entities:
-            print("_______the entity config")
-            print(entity_config.required)
 
-            self.repository.drop_graph()
+            # self.repository.drop_graph()
             self._map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
@@ -34,12 +32,39 @@ class Mapper:
 
                 node = Node(entity_config.name, item.get("id"))
 
-                # node.properties.update(node.id)#TODO improve the
-
                 if entity_config.validate_required(item):
                     self.process_data_properties_in_instance(
                         entity_config.properties, item, entity_config.valuesof, node
                     )
+
+                # ----- Vectors handling
+                if entity_config.vectorize:
+                    vector_config: dict = entity_config.vectorize
+
+                    vector_phrase: str = vector_config.get("phrase")
+                    for value in vector_config.get("values"):
+                        if not isinstance(value, str):
+                            print(
+                                "Error: the vectorization of complex items is not supported"
+                            )
+                            continue
+                        if not entity_config.properties.get(value):
+                            print(f"Error: the value of '{value}' could not be Found")
+                        else:
+                            print("The key")
+                            print(value)
+                            print("The value")
+                            print(item.get(value))
+
+                            vector_phrase = vector_phrase.replace(
+                                f":{value}", f"{item.get(value)}"
+                            )
+
+                    vector_manager = VectorManager(vector_config.get("strategy"))
+                    print(vector_phrase)
+                    vector = vector_manager.get_vector(vector_phrase)
+                    node.properties.update({f"vectors": vector})
+                # ----- Vectors handling
 
                 if node.relations:
                     for relation in node.relations:
@@ -255,8 +280,6 @@ class Mapper:
                 node_properties.update(
                     {relation_config.get(key): target_object.get(key)}
                 )
-                print("______NODE PROPERTIES________")
-                print(node_properties)
 
         node.relations.append(
             Relation(

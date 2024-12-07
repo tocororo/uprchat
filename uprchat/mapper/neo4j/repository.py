@@ -2,7 +2,7 @@ from neo4j import GraphDatabase
 from uprchat.mapper.types.mapper_types import Node, Relation
 
 
-class Singleton:
+class RepositorySingleton:
     _instance = None
 
     def __new__(cls, url, user, password):
@@ -14,7 +14,7 @@ class Singleton:
         return cls._instance
 
 
-class Neo4jRepository(Singleton):
+class Neo4jRepository(RepositorySingleton):
     def __init__(self, uri, user, password):
         self._driver = GraphDatabase.driver(
             uri, auth=(user, password), database="neo4j"
@@ -93,7 +93,6 @@ class Neo4jRepository(Singleton):
 
         # query = (origin_query + target_query)
         query += self._make_relation_query(relation)
-        print(query)
         return self._driver.execute_query(query)
 
     def _make_properties_queries(self, variable: str, properties: dict):
