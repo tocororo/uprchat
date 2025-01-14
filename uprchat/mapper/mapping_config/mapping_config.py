@@ -15,8 +15,12 @@ class EntityMapping:
         self.properties = self.config.get("mapping").get("properties")
         if self.properties.get("identifiers"):
             self.valuesof = self.config.get("mapping").get("valuesOf")
+        else:
+            self.valuesof = None
         if self.config.get("mapping").get("_vectorize"):
             self.vectorize = self.config.get("mapping").get("_vectorize")
+        else:
+            self.vectorize = None
 
     def validate_required(self, instance):
         """Validates that all required attributes are present in the instance

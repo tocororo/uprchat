@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     neo4j_uri: str
     neo4j_user: str
     neo4j_pass: str
+    neo4j_bb: str
     model_config = SettingsConfigDict(env_file=".env")
 
 

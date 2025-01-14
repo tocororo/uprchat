@@ -9,7 +9,9 @@ from uprchat.mapper.mapping_config.mapping_config import (
 
 class RepositoryService:
     st = get_settings()
-    repository = Neo4jRepository(st.neo4j_uri, st.neo4j_user, st.neo4j_pass)
+    repository = Neo4jRepository(
+        st.neo4j_uri, st.neo4j_user, st.neo4j_pass, st.neo4j_bb
+    )
 
     def __init__(self):
         super().__init__()

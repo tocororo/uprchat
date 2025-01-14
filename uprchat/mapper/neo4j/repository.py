@@ -5,21 +5,19 @@ from uprchat.mapper.types.mapper_types import Node, Relation
 class RepositorySingleton:
     _instance = None
 
-    def __new__(cls, url, user, password):
+    def __new__(cls, url, user, password, db="neo4j"):
         if not cls._instance:
             cls._instance = super().__new__(cls)
             cls._instance.url = url
             cls._instance.user = user
             cls._instance.password = password
+            cls._instance.db = db
         return cls._instance
 
 
 class Neo4jRepository(RepositorySingleton):
-    def __init__(self, uri, user, password):
-        self._driver = GraphDatabase.driver(
-            uri, auth=(user, password), database="neo4j"
-        )
-        self.DATABASE = "neo4j"
+    def __init__(self, uri, user, password, db="neo4j"):
+        self._driver = GraphDatabase.driver(uri, auth=(user, password), database=db)
 
     def _process_node_properties(self, properties: dict):
         if not bool(properties):
@@ -30,7 +28,7 @@ class Neo4jRepository(RepositorySingleton):
             if isinstance(properties[key], int) or isinstance(properties[key], list):
                 property_string += f"`{key}`: {properties[key]} "
             else:
-                property_string += f"`{key}`: '{properties[key]}' "
+                property_string += f'`{key}`: "{properties[key]}" '
             if index != len(properties) - 1:
                 property_string += ", "
         property_string += "}"
