@@ -27,50 +27,57 @@ class Mapper:
             )  # TODO: get the corresponding data fro each use case(entity)
 
     def _map_instances(self, entity_config: EntityMapping, entity_data: Data_Iterator):
+        exceptionsIds = []
+        success_iteration=0
         if entity_data is not None:
+            
             for item in entity_data:
+                try:
+                    node = Node(entity_config.name, item.get("id"))
 
-                node = Node(entity_config.name, item.get("id"))
+                    if entity_config.validate_required(item):
+                        self.process_data_properties_in_instance(
+                            entity_config.properties, item, entity_config.valuesof, node
+                        )
 
-                if entity_config.validate_required(item):
-                    self.process_data_properties_in_instance(
-                        entity_config.properties, item, entity_config.valuesof, node
-                    )
+                    # ----- Vectors handling
+                    if entity_config.vectorize:
+                        vector_config: dict = entity_config.vectorize
 
-                # ----- Vectors handling
-                if entity_config.vectorize:
-                    vector_config: dict = entity_config.vectorize
+                        vector_phrase: str = vector_config.get("phrase")
+                        for value in vector_config.get("values"):
+                            if not isinstance(value, str):
+                                print(
+                                    "Error: the vectorization of complex items is not supported"
+                                )
+                                continue
+                            if not entity_config.properties.get(value):
+                                print(f"Error: the value of '{value}' could not be Found")
+                            else:
+                                vector_phrase = vector_phrase.replace(
+                                    f":{value}", f"{item.get(value)}"
+                                )
 
-                    vector_phrase: str = vector_config.get("phrase")
-                    for value in vector_config.get("values"):
-                        if not isinstance(value, str):
-                            print(
-                                "Error: the vectorization of complex items is not supported"
-                            )
-                            continue
-                        if not entity_config.properties.get(value):
-                            print(f"Error: the value of '{value}' could not be Found")
-                        else:
-                            print("The key")
-                            print(value)
-                            print("The value")
-                            print(item.get(value))
+                        vector_manager = VectorManager(vector_config.get("strategy"))
+                        vector = vector_manager.get_vector(vector_phrase)
+                        node.properties.update({f"vectors": vector})
+                    # ----- Vectors handling
 
-                            vector_phrase = vector_phrase.replace(
-                                f":{value}", f"{item.get(value)}"
-                            )
-
-                    vector_manager = VectorManager(vector_config.get("strategy"))
-                    print(vector_phrase)
-                    vector = vector_manager.get_vector(vector_phrase)
-                    node.properties.update({f"vectors": vector})
-                # ----- Vectors handling
-
-                if node.relations:
-                    for relation in node.relations:
-                        self.repository.add_relation(relation)
-                else:
-                    self.repository.add_node(node)
+                    if node.relations:
+                        for relation in node.relations:
+                            self.repository.add_relation(relation)
+                    else:
+                        self.repository.add_node(node)
+                        
+                    success_iteration+= 1
+                except:
+                    exceptionsIds.append(item.get("id"))
+                
+            print(f"{success_iteration} SUCCESSFULLY ENTRIES")
+            print(f"ERROR ON {len(exceptionsIds)} ITEMS")
+            print(exceptionsIds)
+                
+                
 
     def process_data_properties_in_instance(
         self,
