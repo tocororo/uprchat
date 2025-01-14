@@ -56,9 +56,9 @@
               "end_date": "http://sceiba.cu/ontology#EndDate",
               "roles": "http://sceiba.cu/ontology#Roles"
             },
+            "support_address":"http://sceiba.cu/ontology#support_address",
             "id": "http://sceiba.cu/ontology#affiliatedTo",
-            "name":"Orga-name"
-
+            "name":"http://sceiba.cu/ontology#name"
             
           }
         },

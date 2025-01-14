@@ -37,6 +37,7 @@
               "name":"Universidad de Habana",
               "id": "ORG-001",
               "start_date": "2015-09-01",
+              "support_address": "contacto@uniejemplo.edu",
               "end_date": null,
               "label": "Profesor Titular",
               "roles": ["Investigador Principal"]
@@ -59,13 +60,21 @@
             "key_words": ["Automatización", "Control"],
             "academic_titles": ["MSc en Robótica"],
             "roles_sceiba": ["Docente"],
-            "affiliations": {
+            "affiliations": [{
               "id": "ORG-001",
               "start_date": "2018-02-15",
               "end_date": null,
-              "label": "Profesora Asistente",
+              "name": "Profesora Asistente",
+              "roles": ["Docente"]
+            },
+            {
+              "id": "ORG-002",
+              "start_date": "2018-02-15",
+              "end_date": null,
+              "name": "Contrata",
               "roles": ["Docente"]
             }
+          ]
           },
           {
             "id": "PER-003",

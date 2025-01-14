@@ -86,33 +86,29 @@ class Neo4jRepository(RepositorySingleton):
             "ON CREATE"
             f"  SET target += {self._process_node_properties(relation.target_node.properties)}"
             "ON MATCH"
-            f"  SET target += {self._process_node_properties(relation.target_node.properties)}"
+            f"  SET "
+            f"{self._update_values("target", relation.target_node.properties)}"
         )
 
         # query = (origin_query + target_query)
         query += self._make_relation_query(relation)
         return self._driver.execute_query(query)
 
-    def _make_properties_queries(self, variable: str, properties: dict):
-        on_match_query = " ON MATCH SET "
-        on_create_query = " ON CREATE SET "
-
+    def _update_values(self, variable: str, properties: dict):
+        query=''
         for index, key in enumerate(properties):
             if isinstance(properties[key], list) or isinstance(properties[key], int):
-                on_create_query += f"{variable}.`{key}` = {properties[key]}"
-                on_match_query += f"{variable}.`{key}` = {properties[key]}"
+                query += f"{variable}.`{key}` = coalesce({variable}.`{key}`, {properties[key]})"
             else:
-                on_create_query += f"{variable}.`{key}` = '{properties[key]}'"
-                on_match_query += f"{variable}.`{key}` = '{properties[key]}'"
+                query += f'{variable}.`{key}` = coalesce({variable}.`{key}`, "{properties[key]}")'
+              
 
             if index < len(properties) - 1:
-                on_create_query += ", "
-                on_match_query += ", "
+                query += ", "
             else:
-                on_create_query += " "
-                on_match_query += " "
+                query += " "
 
-        return on_match_query + on_create_query
+        return query
 
     def _make_relation_query(self, relation: Relation):
         if relation.properties:
