@@ -32,8 +32,9 @@ class Mapper:
         if entity_data is not None:
             
             for item in entity_data:
+                item_id = item.get("id")
                 try:
-                    node = Node(entity_config.name, item.get("id"))
+                    node = Node(entity_config.name, item_id)
 
                     if entity_config.validate_required(item):
                         self.process_data_properties_in_instance(
@@ -70,8 +71,9 @@ class Mapper:
                         self.repository.add_node(node)
                         
                     success_iteration+= 1
+                    print(f"SUCCESSFULLY PROCESSED {item_id}")
                 except:
-                    exceptionsIds.append(item.get("id"))
+                    exceptionsIds.append(item_id)
                 
             print(f"{success_iteration} SUCCESSFULLY ENTRIES")
             print(f"ERROR ON {len(exceptionsIds)} ITEMS")
