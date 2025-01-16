@@ -28,7 +28,9 @@ class Mapper:
 
     def _map_instances(self, entity_config: EntityMapping, entity_data: Data_Iterator):
         exceptionsIds = []
+        required_fields_ids = []
         success_iteration=0
+        required_fields_error=0
         if entity_data is not None:
             
             for item in entity_data:
@@ -41,43 +43,51 @@ class Mapper:
                             entity_config.properties, item, entity_config.valuesof, node
                         )
 
-                    # ----- Vectors handling
-                    if entity_config.vectorize:
-                        vector_config: dict = entity_config.vectorize
+                        # ----- Vectors handling
+                        if entity_config.vectorize:
+                            vector_config: dict = entity_config.vectorize
 
-                        vector_phrase: str = vector_config.get("phrase")
-                        for value in vector_config.get("values"):
-                            if not isinstance(value, str):
-                                print(
-                                    "Error: the vectorization of complex items is not supported"
-                                )
-                                continue
-                            if not entity_config.properties.get(value):
-                                print(f"Error: the value of '{value}' could not be Found")
-                            else:
-                                vector_phrase = vector_phrase.replace(
-                                    f":{value}", f"{item.get(value)}"
-                                )
+                            vector_phrase: str = vector_config.get("phrase")
+                            for value in vector_config.get("values"):
+                                if not isinstance(value, str):
+                                    print(
+                                        "Error: the vectorization of complex items is not supported"
+                                    )
+                                    continue
+                                if not entity_config.properties.get(value):
+                                    print(f"Error: the value of '{value}' could not be Found")
+                                else:
+                                    vector_phrase = vector_phrase.replace(
+                                        f":{value}", f"{item.get(value)}"
+                                    )
 
-                        vector_manager = VectorManager(vector_config.get("strategy"))
-                        vector = vector_manager.get_vector(vector_phrase)
-                        node.properties.update({f"vectors": vector})
-                    # ----- Vectors handling
+                            vector_manager = VectorManager(vector_config.get("strategy"))
+                            vector = vector_manager.get_vector(vector_phrase)
+                            node.properties.update({f"vectors": vector})
+                        # ----- Vectors handling
 
-                    if node.relations:
-                        for relation in node.relations:
-                            self.repository.add_relation(relation)
-                    else:
-                        self.repository.add_node(node)
+                        if node.relations:
+                            for relation in node.relations:
+                                self.repository.add_relation(relation)
+                        else:
+                            self.repository.add_node(node)
                         
-                    success_iteration+= 1
-                    print(f"SUCCESSFULLY PROCESSED {item_id}")
+                        success_iteration+= 1
+                        print(f"SUCCESSFULLY PROCESSED {item_id}")
+                    else:
+                        required_fields_error+=1 
+                        required_fields_ids.append(item_id)
+                        
                 except:
                     exceptionsIds.append(item_id)
                 
             print(f"{success_iteration} SUCCESSFULLY ENTRIES")
             print(f"ERROR ON {len(exceptionsIds)} ITEMS")
             print(exceptionsIds)
+            print("===============================================================")
+            print(f"REQUIRED FIELDS ERROR ON {required_fields_error}")
+            print(required_fields_ids)
+            
                 
                 
 
