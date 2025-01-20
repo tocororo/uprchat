@@ -5,6 +5,9 @@ from uprchat.app.config import get_settings
 from uprchat.mapper.mapping_config.mapping_config import (
     MappingConfig,
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RepositoryService:
@@ -30,9 +33,9 @@ class RepositoryService:
             or "DELETE" in upper_query
             or " SET " in upper_query
         ):
-            return "Error: only consult queries are allowed"
+            return logger.error("Only consult queries are allowed")
         elif not "RETURN" in upper_query:
-            return "Error: The query must have a return statement"
+            return logger.error("The query must have a return statement")
         return self.repository.execute_external_query(query)
 
     def get_graph(self):

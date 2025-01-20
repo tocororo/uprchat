@@ -7,7 +7,9 @@ from ..types.mapper_types import Node, Relation
 import uuid as uuid_pkg
 from uprchat.mapper.neo4j.repository import Neo4jRepository
 from uprchat.mapper.vectors.vectorizer import VectorManager
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Mapper:
     def __init__(
@@ -20,8 +22,7 @@ class Mapper:
 
     def start(self):
         for entity_config in self.config.entities:
-
-            # self.repository.drop_graph()
+            logger.info("Starting Mapper")
             self._map_instances(
                 entity_config, self.data
             )  # TODO: get the corresponding data fro each use case(entity)
@@ -50,12 +51,12 @@ class Mapper:
                             vector_phrase: str = vector_config.get("phrase")
                             for value in vector_config.get("values"):
                                 if not isinstance(value, str):
-                                    print(
-                                        "Error: the vectorization of complex items is not supported"
+                                    logger.error(
+                                        "The vectorization of complex items is not supported"
                                     )
                                     continue
                                 if not entity_config.properties.get(value):
-                                    print(f"Error: the value of '{value}' could not be Found")
+                                    logger.error(f"The value of '{value}' could not be Found")
                                 else:
                                     vector_phrase = vector_phrase.replace(
                                         f":{value}", f"{item.get(value)}"
@@ -73,7 +74,7 @@ class Mapper:
                             self.repository.add_node(node)
                         
                         success_iteration+= 1
-                        print(f"SUCCESSFULLY PROCESSED {item_id}")
+                        logger.info(f"SUCCESSFULLY PROCESSED {item_id}")
                     else:
                         required_fields_error+=1 
                         required_fields_ids.append(item_id)
@@ -81,12 +82,12 @@ class Mapper:
                 except:
                     exceptionsIds.append(item_id)
                 
-            print(f"{success_iteration} SUCCESSFULLY ENTRIES")
-            print(f"ERROR ON {len(exceptionsIds)} ITEMS")
-            print(exceptionsIds)
-            print("===============================================================")
-            print(f"REQUIRED FIELDS ERROR ON {required_fields_error}")
-            print(required_fields_ids)
+            logger.info(f"{success_iteration} SUCCESSFULLY ENTRIES")
+            logger.error(f" ON {len(exceptionsIds)} ITEMS")
+            logger.error(exceptionsIds)
+            logger.info("===============================================================")
+            logger.error(f"REQUIRED FIELDS ERROR ON {len(required_fields_ids)}")
+            logger.error(required_fields_ids)
             
                 
                 
@@ -114,8 +115,6 @@ class Mapper:
         node: Node,
     ):
         if "identifiers" == property_key and isinstance(property_value, list):
-            print("process identifiers...")
-
             for identifier in property_value:
                 node.properties.update(
                     self._process_identifiers_dict(
@@ -127,7 +126,6 @@ class Mapper:
 
         if "__relation" in properties_config[property_key]:
             if isinstance(property_value, list):
-                print("process relation...")
                 for relation in property_value:
                     if isinstance(relation, dict):
 
@@ -147,7 +145,6 @@ class Mapper:
 
         # Dict
         elif isinstance(property_value, dict):
-            print("process dict")
             self._process_dict(property_key, property_value, properties_config, node)
 
         elif isinstance(property_value, list):
@@ -240,7 +237,7 @@ class Mapper:
         properties_config: dict,
         node: Node,
     ):
-        print(f"Processing relation: {property_key}")
+        logger.info(f" Processing relations of: ({node.label}) ")
         relation_config: dict = properties_config.get(property_key)
         target_id, target_label, relation_label = ("",) * 3
         node_properties = {}
@@ -263,8 +260,8 @@ class Mapper:
                         continue
 
                     if isinstance(relation_value, dict):
-                        print(
-                            "Error: a object can not be a assigned to relation properties"
+                        logger.error(
+                            "A object can not be a assigned to relation properties"
                         )
                         continue
 
@@ -278,8 +275,8 @@ class Mapper:
                         )
                     elif isinstance(relation_value, list):
                         if isinstance(relation_value[0], dict):
-                            print(
-                                "Error: a object can not be a assigned to relation properties"
+                            logger.error(
+                                "A object can not be a assigned to relation properties"
                             )
                             continue
 
