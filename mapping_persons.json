@@ -1,0 +1,117 @@
+{
+  "name":  "test",
+  "description":  "sceasdas",
+  "mapping_order": [
+    "srcid",
+    "orgid",
+    "perid",
+    "proid",
+    "irouid"
+  ],
+  "entities": [
+    {
+      "name": "Persona",
+      "mapping": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "_vectorize":{
+          "strategy":"Document Embeddings",
+          "values":["name", "last_name"],
+          "phrase":":name :last_name es una persona"
+        },
+        "_class": "http://sceiba.cu/ontology#Person",
+        "properties": {
+          "identifiers": {
+            "__predicate": "idtype",
+            "__object": "value",
+            "idtype": "valuesOf:identifiers.idtype"
+          },
+          "id": "http://sceiba.cu/ontology#id",
+          "name": "http://sceiba.cu/ontology#name",
+          "last_name": "http://sceiba.cu/ontology#lastName",
+          "gender": "http://sceiba.cu/ontology#gender",
+          "country": {
+            "__relation": "code",
+            "__predicate":"LIVES_IN",
+            "__target": "Country",
+            "code": "https://countrynames.com/model/#code",
+            "name": "https://countrynames.com/model/#name"
+          },
+          "email_addresses": "http://sceiba.cu/ontology#emailAddress",
+          "institutional_email": "http://sceiba.cu/ontology#emailAddress",
+          "aliases": "http://sceiba.cu/ontology#aliases",
+          "research_interests": "http://sceiba.cu/ontology#researchInterestIn",
+          "key_words": "http://sceiba.cu/ontology#hasKeyword",
+          "academic_titles": "http://sceiba.cu/ontology#academicTitles",
+          "roles_sceiba": "http://sceiba.cu/ontology#role",
+          "affiliations": {
+            "__relation": "id",
+            "__predicate":"AFFILIATED_TO",
+            "__target": "Organización",
+            "relation_properties":{
+              "start_date": "http://sceiba.cu/ontology#StartDate",
+              "end_date": "http://sceiba.cu/ontology#EndDate",
+              "roles": "http://sceiba.cu/ontology#Roles"
+            },
+            "support_address":"http://sceiba.cu/ontology#support_address",
+            "id": "http://sceiba.cu/ontology#affiliatedTo",
+            "name":"http://sceiba.cu/ontology#name"
+            
+          }
+        },
+        "valuesOf": {
+          "identifiers.idtype": {
+            "ark": "http://sceiba.cu/identifier#ark",
+            "arxiv": "http://sceiba.cu/identifier#arxiv",
+            "doi": "http://sceiba.cu/identifier#doi",
+            "bibcode": "http://sceiba.cu/identifier#bibcode",
+            "ean8": "http://sceiba.cu/identifier#ean8",
+            "ean13": "http://sceiba.cu/identifier#ean13",
+            "handle": "http://sceiba.cu/identifier#handle",
+            "isbn": "http://sceiba.cu/identifier#isbn",
+            "issn_l": "http://sceiba.cu/identifier#issn_l",
+            "issn_p": "http://sceiba.cu/identifier#issn_p",
+            "issn_e": "http://sceiba.cu/identifier#issn_e",
+            "issn_c": "http://sceiba.cu/identifier#issn_c",
+            "issn_o": "http://sceiba.cu/identifier#issn_o",
+            "istc": "http://sceiba.cu/identifier#istc",
+            "lsid": "http://sceiba.cu/identifier#lsid",
+            "pmid": "http://sceiba.cu/identifier#pmid",
+            "pmcid": "http://sceiba.cu/identifier#pmcid",
+            "purl": "http://sceiba.cu/identifier#purl",
+            "upc": "http://sceiba.cu/identifier#upc",
+            "url": "http://sceiba.cu/identifier#url",
+            "urn": "http://sceiba.cu/identifier#urn",
+            "orcid": "http://sceiba.cu/identifier#orcid",
+            "dni": "http://sceiba.cu/identifier#dni",
+            "scopid": "http://sceiba.cu/identifier#scopid",
+            "hrid": "http://sceiba.cu/identifier#hrid",
+            "passp": "http://sceiba.cu/identifier#passp",
+            "gnd": "http://sceiba.cu/identifier#gnd",
+            "ads": "http://sceiba.cu/identifier#ads",
+            "oai": "http://sceiba.cu/identifier#oai",
+            "prnps": "http://sceiba.cu/identifier#prnps",
+            "ernps": "http://sceiba.cu/identifier#ernps",
+            "oaiurl": "http://sceiba.cu/identifier#oaiurl",
+            "grid": "http://sceiba.cu/identifier#grid",
+            "wkdata": "http://sceiba.cu/identifier#wkdata",
+            "ror": "http://sceiba.cu/identifier#ror",
+            "isni": "http://sceiba.cu/identifier#isni",
+            "fudref": "http://sceiba.cu/identifier#fudref",
+            "orgref": "http://sceiba.cu/identifier#orgref",
+            "reup": "http://sceiba.cu/identifier#reup",
+            "orgaid": "http://sceiba.cu/identifier#orgaid",
+            "uniid": "http://sceiba.cu/identifier#uniid",
+            "sceibaid": "http://sceiba.cu/identifier#sceibaid",
+            "irouid": "http://sceiba.cu/identifier#irouid",
+            "srcid": "http://sceiba.cu/identifier#srcid",
+            "orgid": "http://sceiba.cu/identifier#orgid",
+            "perid": "http://sceiba.cu/identifier#perid"
+          }
+        }
+      }
+    }
+  ]
+}

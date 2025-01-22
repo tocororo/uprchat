@@ -1,5 +1,7 @@
 
 import uvicorn
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +18,12 @@ from .routes import (
     llmqueries,
 )
 from .routes.mapper import mapper_router
+
+# Use the commented implementation of the logger for customs logs
+# logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
+
+logging.basicConfig(filename="logfile.log", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="UPR-K API", version="1.0.0")
 

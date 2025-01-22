@@ -1,0 +1,21 @@
+ [
+      {
+          "id": "ORG-001",
+          "name": "Universidad de Ejemplo",
+          "status": "Activa",
+          "aliases": ["UniEjemplo", "UDE"],
+          "email_address": "contacto@uniejemplo.edu",
+          "addresses": {
+            "city": "Ciudad Ejemplo",
+            "country": "Cuba's",
+            "country_code": "CU",
+            "line_1": "Calle Principal`s 123",
+            "postcode": "10000",
+            "state": "Estado Ejemplo",
+            "state_code": "EX"
+          }
+        }
+      
+      
+    ]
+  
