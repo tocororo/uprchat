@@ -1,4 +1,5 @@
 
+from uprchat.app.routes import crawler
 import uvicorn
 import logging
 
@@ -41,17 +42,18 @@ def root():
     return "Tables created"
 
 
-app.include_router(urls.rt)
-app.include_router(domains.rt)
-app.include_router(sources.rt)
-app.include_router(models.rt)
-app.include_router(collectors.rt)
-app.include_router(jobs.rt)
-app.include_router(users.rt)
-app.include_router(chats.rt)
-app.include_router(llmqueries.rt)
+# app.include_router(urls.rt)
+# app.include_router(domains.rt)
+# app.include_router(sources.rt)
+# app.include_router(models.rt)
+# app.include_router(collectors.rt)
+# app.include_router(jobs.rt)
+# app.include_router(users.rt)
+# app.include_router(chats.rt)
+# app.include_router(llmqueries.rt)
+app.include_router(crawler.rt)
 
-app.include_router(mapper_router.router)
+# app.include_router(mapper_router.router)
 
 
 def start():
