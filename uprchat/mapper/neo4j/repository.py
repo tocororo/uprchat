@@ -95,13 +95,12 @@ class Neo4jRepository(RepositorySingleton):
         return self._driver.execute_query(query)
 
     def _update_values(self, variable: str, properties: dict):
-        query=''
+        query = ""
         for index, key in enumerate(properties):
             if isinstance(properties[key], list) or isinstance(properties[key], int):
                 query += f"{variable}.`{key}` = coalesce({variable}.`{key}`, {properties[key]})"
             else:
                 query += f'{variable}.`{key}` = coalesce({variable}.`{key}`, "{properties[key]}")'
-              
 
             if index < len(properties) - 1:
                 query += ", "

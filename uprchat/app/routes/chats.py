@@ -75,10 +75,8 @@ async def delete_chats(
 
 
 @rt.post("/prompt", response_model=str, status_code=status.HTTP_200_OK)
-async def prompt(
-    input: str = Body()
-):
-    properties_description = { # description of entity props
+async def prompt(input: str = Body()):
+    properties_description = {  # description of entity props
         "name": "Name of the entity",
         "uri": "URI of the entity, it is a unique identifier",
         "gender": "Gender of the entity, if applicable",
@@ -91,7 +89,7 @@ async def prompt(
         settings.neo4j_uri,
         settings.neo_user,
         settings.neo_pass,
-        properties_description
+        properties_description,
     )
     output = agent.generate_response(input)
     # llmq = LLMQuery(input=input, output=output)

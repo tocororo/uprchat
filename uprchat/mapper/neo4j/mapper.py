@@ -11,6 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Mapper:
     def __init__(
         self, config: MappingConfig, data: Data_Iterator, repository: Neo4jRepository
@@ -30,10 +31,10 @@ class Mapper:
     def _map_instances(self, entity_config: EntityMapping, entity_data: Data_Iterator):
         exceptionsIds = []
         required_fields_ids = []
-        success_iteration=0
-        required_fields_error=0
+        success_iteration = 0
+        required_fields_error = 0
         if entity_data is not None:
-            
+
             for item in entity_data:
                 item_id = item.get("id")
                 try:
@@ -56,13 +57,17 @@ class Mapper:
                                     )
                                     continue
                                 if not entity_config.properties.get(value):
-                                    logger.error(f"The value of '{value}' could not be Found")
+                                    logger.error(
+                                        f"The value of '{value}' could not be Found"
+                                    )
                                 else:
                                     vector_phrase = vector_phrase.replace(
                                         f":{value}", f"{item.get(value)}"
                                     )
 
-                            vector_manager = VectorManager(vector_config.get("strategy"))
+                            vector_manager = VectorManager(
+                                vector_config.get("strategy")
+                            )
                             vector = vector_manager.get_vector(vector_phrase)
                             node.properties.update({f"vectors": vector})
                         # ----- Vectors handling
@@ -72,25 +77,24 @@ class Mapper:
                                 self.repository.add_relation(relation)
                         else:
                             self.repository.add_node(node)
-                        
-                        success_iteration+= 1
+
+                        success_iteration += 1
                         logger.info(f"SUCCESSFULLY PROCESSED {item_id}")
                     else:
-                        required_fields_error+=1 
+                        required_fields_error += 1
                         required_fields_ids.append(item_id)
-                        
+
                 except:
                     exceptionsIds.append(item_id)
-                
+
             logger.info(f"{success_iteration} SUCCESSFULLY ENTRIES")
             logger.error(f" ON {len(exceptionsIds)} ITEMS")
             logger.error(exceptionsIds)
-            logger.info("===============================================================")
+            logger.info(
+                "==============================================================="
+            )
             logger.error(f"REQUIRED FIELDS ERROR ON {len(required_fields_ids)}")
             logger.error(required_fields_ids)
-            
-                
-                
 
     def process_data_properties_in_instance(
         self,

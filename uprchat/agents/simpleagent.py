@@ -172,8 +172,7 @@ class SimpleAgent:
         rel_schema = self.__get_rel_schema()
 
         query = self.__agent_txt2query.invoke(
-            {"node_schema": node_schema, "rel_schema": rel_schema,
-             "query": question}
+            {"node_schema": node_schema, "rel_schema": rel_schema, "query": question}
         )
         context = ""
         try:
@@ -228,5 +227,4 @@ class SimpleAgent:
 
     def generate_response(self, question: str) -> str:
         results_table = self.__retriever_information(question)
-        return self.__agent.invoke({"results_table": results_table,
-                                    "query": question})
+        return self.__agent.invoke({"results_table": results_table, "query": question})
