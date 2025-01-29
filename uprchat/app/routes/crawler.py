@@ -1,16 +1,19 @@
 from fastapi import APIRouter
-from uprchat.harvester.crawler import start_recollection
+from uprchat.harvester.crawler import start
+from uprchat.harvester.db_services.repository import HarvesterRepository
 import asyncio
 
 rt = APIRouter(prefix="/crawler", tags=["crawler"])
 
 
 @rt.post("/")
-async def start_crawl(url: str):
+def start_crawl():
     print("--------------------------------------------------------")
-    print(url)
-    try:
+    # try:
+    start()
+    # except Exception as e:
+    #     print(e)
 
-        await start_recollection(url)
-    except Exception as e:
-        print(e)
+@rt.get("/")
+def get_all_saved_data():
+    return HarvesterRepository().get_all_data()

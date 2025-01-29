@@ -22,8 +22,9 @@ from .routes.mapper import mapper_router
 # Use the commented implementation of the logger for customs logs
 # logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
 
-logging.basicConfig(filename="logfile.log", level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(filename="logfile.log", filemode="w", level=logging.INFO)
+
+logger = logging.getLogger("main")
 
 app = FastAPI(title="UPR-K API", version="1.0.0")
 
@@ -53,7 +54,7 @@ def root():
 # app.include_router(llmqueries.rt)
 app.include_router(crawler.rt)
 
-# app.include_router(mapper_router.router)
+app.include_router(mapper_router.router)
 
 
 def start():
