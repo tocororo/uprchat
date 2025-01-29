@@ -2,6 +2,8 @@ from crawl4ai import AsyncWebCrawler, JsonCssExtractionStrategy, CacheMode
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
 from uprchat.app.models import CrawlerData
 from uprchat.harvester.db_services.repository import HarvesterRepository
+from crawl4ai.extraction_strategy import LLMExtractionStrategy
+from pydantic import BaseModel, Field
 import asyncio
 import json
 import logging
@@ -87,5 +89,51 @@ async def start_general_recollection(start_url):
                             links.extend(result.links.get("internal", []))
 
 
+class OpenAIModelFee(BaseModel):
+    title: str = Field(..., description="the title for the article")
+    body: str = Field(..., description="The relevant information associated to the article title")
+    subdomain: str = Field(
+        ..., description="the sub domain of the article, it can be null"
+    )
+
+
+async def extract_structured_data_using_llm(
+    link:str, provider: str, api_token: str = None
+):
+    print(f"\n--- Extracting Structured Data with {provider} ---")
+
+    if api_token is None and provider != "ollama":
+        print(f"API token is required for {provider}. Skipping this example.")
+        return
+
+    browser_config = BrowserConfig(headless=True)
+
+    extra_args = {"temperature": 0, "top_p": 0.9, "max_tokens": 2000}
+
+
+    crawler_config = CrawlerRunConfig(
+        cache_mode=CacheMode.BYPASS,
+        word_count_threshold=1,
+        page_timeout=80000,
+        extraction_strategy=LLMExtractionStrategy(
+            provider=provider,
+            api_token=api_token,
+            schema=OpenAIModelFee.model_json_schema(),
+            extraction_type="schema",
+            instruction="""From the crawled content, extract all mentioned model names along with their fees for input and output tokens. 
+            Do not miss any models in the entire content.""",
+            extra_args=extra_args,
+        ),
+    )
+    
+    async with AsyncWebCrawler(config=browser_config) as crawler:
+        result = await crawler.arun(
+            url=link, config=crawler_config
+        )
+        print(result.extracted_content)
+
+
+
 def start(uri: str = "https://www.upr.edu.cu"):
-    asyncio.run(start_general_recollection(uri))
+    # asyncio.run(start_general_recollection(uri))
+    asyncio.run(extract_structured_data_using_llm(provider="ollama/llama3.3", api_token="no-token", link=uri))
