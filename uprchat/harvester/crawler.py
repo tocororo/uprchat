@@ -34,8 +34,7 @@ async def start_general_recollection(start_url):
         "name": "General shema",
         "baseSelector": "html",
         "fields": [
-            {"name": "title", "selector": "title", "type": "text"},
-            {"name": "body", "selector": "body", "type": "text"},
+            {"name": "rawHtml", "selector": "html", "type": "text"},
         ],
     }
     collection_strategy = JsonCssExtractionStrategy(schema=general_schema)
@@ -56,10 +55,9 @@ async def start_general_recollection(start_url):
     async with AsyncWebCrawler(config=browser_config) as crawler:
         repository = HarvesterRepository()
         result = await crawler.arun(url=start_url, config=run_config)
-        print(result.extracted_content)
+        
+        logger.info(result.extracted_content)
         links = result.links.get("internal", [])
-        
-        
         
         if links is not None:
             for link in links:
@@ -71,6 +69,8 @@ async def start_general_recollection(start_url):
 
                     logger.info(f"Recollecting: {uri}")
                     result = await crawler.arun(url=link["href"], config=run_config)
+                    
+                    # result.html
                     if result is not None:
                         if result.extracted_content is not None:
                             logger.info(f"The result content: {result}")
@@ -103,12 +103,12 @@ async def extract_structured_data_using_llm(
     print(f"\n--- Extracting Structured Data with {provider} ---")
 
     if api_token is None and provider != "ollama":
-        print(f"API token is required for {provider}. Skipping this example.")
+        logger.error(f"API token is required for {provider}")
         return
 
     browser_config = BrowserConfig(headless=True)
 
-    extra_args = {"temperature": 0, "top_p": 0.9, "max_tokens": 2000}
+    # extra_args = {"temperature": 0, "top_p": 0.9, "max_tokens": 2000}
 
 
     crawler_config = CrawlerRunConfig(
@@ -120,9 +120,9 @@ async def extract_structured_data_using_llm(
             api_token=api_token,
             schema=OpenAIModelFee.model_json_schema(),
             extraction_type="schema",
-            instruction="""From the crawled content, extract all mentioned model names along with their fees for input and output tokens. 
-            Do not miss any models in the entire content.""",
-            extra_args=extra_args,
+            instruction="""From the crawled content, extract the title for every article names along with their body content. 
+            Do not miss any article in the entire content.""",
+            # extra_args=extra_args,
         ),
     )
     
@@ -135,5 +135,5 @@ async def extract_structured_data_using_llm(
 
 
 def start(uri: str = "https://www.upr.edu.cu"):
-    # asyncio.run(start_general_recollection(uri))
-    asyncio.run(extract_structured_data_using_llm(provider="ollama/llama3.3", api_token="no-token", link=uri))
+    asyncio.run(start_general_recollection(uri))
+    # asyncio.run(extract_structured_data_using_llm(provider="ollama/llama3.3", api_token="no-token", link=uri))
