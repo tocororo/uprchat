@@ -3,6 +3,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    modeltxttocypher:str
     postgres_database_url: str
     secret: str
     algorithm: str
