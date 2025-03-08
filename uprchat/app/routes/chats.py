@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, status, Query, HTTPException
+from fastapi import APIRouter, Depends, status, Query, HTTPException, Body
 from sqlmodel import Session, select, delete
 from typing import Annotated
-from ..models import Chat, ChatCreate, User
+from ..config import get_settings
+from ..models import Chat, ChatCreate, User, LLMQuery
 from ..db_config import get_session
 from .users import current_user
+from ...agents.simpleagent import SimpleAgent
 
 rt = APIRouter(prefix="/chats", tags=["chats"])
 
@@ -70,3 +72,30 @@ async def delete_chats(
     session.exec(delete(Chat).where(Chat.id == id))
     session.commit()
     return "Chat deleted"
+
+
+@rt.post("/prompt", response_model=str, status_code=status.HTTP_200_OK)
+async def prompt(
+    input: str = Body()
+):
+    properties_description = { # description of entity props
+        "name": "Name of the entity",
+        "uri": "URI of the entity, it is a unique identifier",
+        "gender": "Gender of the entity, if applicable",
+        "title": "Title of the entity",
+    }
+    settings = get_settings()
+    agent = SimpleAgent(
+        settings.model,
+        settings.modeltxttocypher,
+        settings.neo4j_uri,
+        settings.neo_user,
+        settings.neo_pass,
+        properties_description
+    )
+    output = agent.generate_response(input)
+    # llmq = LLMQuery(input=input, output=output)
+    # session.add(llmq)
+    # session.commit()
+    # session.refresh(llmq)
+    return output
