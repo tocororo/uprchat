@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -109,3 +110,7 @@ capacitor.config.ts
 
 .data
 poetry.lock
+
+.env
+/.vscode
+*.log
