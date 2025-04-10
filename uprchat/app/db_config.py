@@ -3,13 +3,15 @@ from .models import SQLModel
 
 from .config import get_settings
 
-engine = create_engine(get_settings().postgres_database_url)
+
+url = get_settings().postgres_database_url
+engine = create_engine(url)
 
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
 
-def get_session():
+def get_session() -> Session:
     with Session(engine) as session:
-        yield session
+        return session

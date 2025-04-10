@@ -101,3 +101,11 @@ class SourceShow(SourceBase):
 
 class JobShow(JobBase):
     sources: list[int]
+
+
+class CrawlerData(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    uri: str = Field(unique=True, index=True)
+    title: str = Field( nullable=True)
+    body: str = Field()
+    # subdomain: str = Field()
