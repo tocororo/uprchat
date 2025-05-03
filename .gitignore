@@ -1,7 +1,9 @@
 .idea
 .DS_Store
 poetry.lock
-
+/repositories/docs
+/repositories/ppts
+/repositories/pdfs
 /venv
 __pycache__
 
