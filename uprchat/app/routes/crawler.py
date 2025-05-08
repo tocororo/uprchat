@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter
 from uprchat.harvester.crawler import start
 from uprchat.harvester.db_services.repository import HarvesterRepository
@@ -15,9 +16,10 @@ def start_crawl():
     #     print(e)
 
 @rt.post('/v2')
-def start_crawl_v2(url: str):
+async def start_crawl_v2(url: str):
     print("--------------------------------------------------------")
     start_recollection(url)
+    return {"message": "Crawling started"}
 
 @rt.get("/")
 def get_all_saved_data():

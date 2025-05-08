@@ -5,6 +5,8 @@ from functools import lru_cache
 class Settings(BaseSettings):
     mainmodel: str
     modeltxttocypher:str
+    model_api_key: str 
+    base_url: str
     postgres_database_url: str
     secret: str
     algorithm: str
