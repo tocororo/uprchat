@@ -1,6 +1,6 @@
 
-import asyncio
-from uprchat.harvester.extractor import ExtractorFreeLLM, ExtractorLLM
+from typing import Dict, Optional
+from uprchat.harvester.extractor import Extractor, ExtractorLLM
 from uprchat.harvester.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -9,83 +9,82 @@ class GraphBuilder:
     """
     Orchestrates a breadth-first crawl of web pages, extracting content and discovering internal links.
     Attributes:
-        extractor (ExtractorFreeLLM):   Instance responsible for fetching and parsing page data.
+        extractor (Extractor):   Instance responsible for fetching and parsing page data.
         extractor_ai (ExtractorLLM):   Instance responsible for fetching and parsing page data using AI.
         visited (set[str]):      URLs that have already been processed.
         urls (list[str]):        Queue of URLs pending extraction.
     """
 
-    def __init__(self):
-        self.extractor = ExtractorFreeLLM()
-        self.extractor_ai = ExtractorLLM("openai")
+    def __init__(self,
+                 model_name: str,
+                 model_type: str,
+                 base_url: str,
+                 api_key: str,
+                 proxy_config: Optional[Dict[str, str]] = None
+                  ):
+        
+        self.extractor = Extractor(proxy_config)
+        self.extractor_ai = ExtractorLLM(
+            model_name,
+            model_type,
+            base_url,
+            api_key,
+            proxy_config
+        )
         self.visited = set()
         self.urls = []
 
+    async def _crawl(self, url: str, extractor: Extractor, recollection_deep: int):
+        self.visited.clear()
+        self.urls = [[url]]
+        iter_count = 0
+        while self.urls and iter_count < recollection_deep:
+            iter_count += 1
+            urls_list = self.urls.pop(0)
+            new_urls = []
+            for current_url in urls_list:
+                if current_url in self.visited: 
+                    continue
+                logger.info(f"Making request to {current_url}")
+                result = await extractor.process_url(current_url)
+                self.visited.add(current_url)
+                if not result:
+                    continue
+                links = result.get("links", None)
+                if links:
+                    internal_links = [
+                        item["href"]
+                        for item in links
+                        if item["href"] not in self.visited
+                    ]
+                    if internal_links:
+                        new_urls.extend(internal_links)
+                logger.info(f"Extracted data: {result}")
+            self.urls.append(new_urls)
+
     async def start_recollection(
-        self, url: str = "http://www.upr.edu.cu/home", recollection_deep: int = 99999999
+        self, url: str, recollection_deep: int = 99999999
     ):
         """
         Begins asynchronous crawling from a seed URL up to a specified depth, collecting page data and internal links.
         Args:
-            url (str): Starting URL for the crawl (default: "http://www.upr.edu.cu/home").
+            url (str): Starting URL for the crawl.
             recollection_deep (int): Maximum number of levels to process (default: 99999999).
         Returns:
             None
         """
-        self.urls = [url]
-        iter_count = 0
-        while self.urls and iter_count < recollection_deep:
-            iter_count += 1
-            current_url = self.urls.pop(0)
-            logger.info(f"Making request to {current_url}")
-            result = await self.extractor.process_url(current_url)
-            self.visited.add(current_url)
-            if not result:
-                continue
-            links = result.get("links", None)
-            if links:
-                internal_links = [
-                    item["href"]
-                    for item in links
-                    if item["href"] not in self.visited and item["href"] not in self.urls
-                ]
-                if internal_links:
-                    self.urls.extend(internal_links)
-            logger.info(f"Extracted data: {result}")
+        await self._crawl(url, self.extractor, recollection_deep)
     
     async def start_recollection_with_ai(
-        self, url: str = "http://www.upr.edu.cu/home", recollection_deep: int = 99999999
+        self, url: str, recollection_deep: int = 99999999
     ):
         """
         Begins asynchronous crawling from a seed URL up to a specified depth, collecting page data and internal links.
         Args:
-            url (str): Starting URL for the crawl (default: "http://www.upr.edu.cu/home").
+            url (str): Starting URL for the crawl.
             recollection_deep (int): Maximum number of levels to process (default: 99999999).
         Returns:
             None
         """
-        self.urls = [url]
-        iter_count = 0
-        while self.urls and iter_count < recollection_deep:
-            iter_count += 1
-            current_url = self.urls.pop(0)
-            logger.info(f"Making request to {current_url}")
-            result = await self.extractor_ai.process_url(current_url)
-            self.visited.add(current_url)
-            if not result:
-                continue
-            links = result.get("links", None)
-            if links:
-                internal_links = [
-                    item["href"]
-                    for item in links
-                    if item["href"] not in self.visited and item["href"] not in self.urls
-                ]
-                if internal_links:
-                    self.urls.extend(internal_links)
-            logger.info(f"Extracted data: {result}")
+        await self._crawl(url, self.extractor_ai, recollection_deep)
 
-
-async def start_recollection(url: str):
-    graph_builder = GraphBuilder()
-    await graph_builder.start_recollection_with_ai(url)

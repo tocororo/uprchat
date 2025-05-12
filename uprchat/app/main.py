@@ -1,5 +1,4 @@
-import asyncio
-import sys
+
 from uprchat.app.routes import crawler
 import uvicorn
 import logging

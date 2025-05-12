@@ -1,11 +1,23 @@
-import re
+
 from fastapi import APIRouter
+from uprchat.app.config import get_settings
 from uprchat.harvester.crawler import start
 from uprchat.harvester.db_services.repository import HarvesterRepository
-from uprchat.harvester.graphbuilder import start_recollection
+from uprchat.harvester.graphbuilder import GraphBuilder
+
 
 rt = APIRouter(prefix="/crawler", tags=["crawler"])
 
+settings = get_settings()
+
+async def start_recollection(url: str):
+    graph_builder = GraphBuilder(
+        model_name=settings.mainmodel,
+        base_url=settings.base_url,
+        api_key=settings.model_api_key,
+        model_type="openai"
+    )
+    await graph_builder.start_recollection_with_ai(url)
 
 @rt.post("/")
 def start_crawl():

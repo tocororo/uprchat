@@ -1,9 +1,9 @@
 .idea
 .DS_Store
 poetry.lock
-/repositories/docs
-/repositories/ppts
-/repositories/pdfs
+/uprchat/harvester/repositories/pdfs/*
+/uprchat/harvester/repositories/ppts/*
+/uprchat/harvester/repositories/docs/*
 /venv
 __pycache__
 
