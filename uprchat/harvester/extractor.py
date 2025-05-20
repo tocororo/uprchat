@@ -12,7 +12,7 @@ from crawl4ai import (
 )
 from pydantic import BaseModel, Field
 
-from uprchat.harvester.config import PDF_DIR, DOC_DIR, PPT_DIR
+from uprchat.harvester.config import PDF_DIR, DOC_DIR, PPT_DIR, HTML_DIR
 from uprchat.harvester.downloader import Downloader
 from uprchat.harvester.parser import Parser, ParserAI
 
@@ -85,7 +85,10 @@ class Extractor:
                 "stored_in": str(path),
             }
         elif content_type == "site":
+            path = HTML_DIR / f"{filename}.html"
+            self.downloader.save_file(content, path)
             data = await self.extraction_xpath_to_json(url)
+            data["stored_in"] = str(path)
         else:
             logger.error(f"Unsupported content type: {content_type}")
         return data
@@ -138,7 +141,7 @@ class Extractor:
         }
 
         base_browser = BrowserConfig(
-            headless=False,
+            headless=True,
             text_mode=True,
             user_agent_mode="random",
             java_script_enabled=True,
@@ -166,8 +169,9 @@ class Extractor:
                 "type": "page",
                 "url": url,
                 "title": info.get("title", ""),
-                "body": info.get("body", ""),
+                "summary": info.get("body", ""),
                 "links": result.links.get("internal", []),
+                "stored_in": ""
             }
             return data
 
@@ -205,7 +209,10 @@ class ExtractorLLM(Extractor):
                                    filename: str, 
                                    url: str) -> Dict[str, str] | None:
         if content_type == "site":
+            path = HTML_DIR / f"{filename}.html"
+            self.downloader.save_file(content, path)
             data = await self.extraction_using_llm(url)
+            data["stored_in"] = str(path)
         else:
             data = await super()._handle_content_type(content_type, content, filename, url)
             if not data:

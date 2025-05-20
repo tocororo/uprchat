@@ -1,7 +1,9 @@
 
+import json
 from typing import Dict, Optional
 from uprchat.harvester.extractor import Extractor, ExtractorLLM
 from uprchat.harvester.logger import setup_logger
+from uprchat.mapper.services import RepositoryService, MapperService
 
 logger = setup_logger(__name__)
 
@@ -20,7 +22,11 @@ class GraphBuilder:
                  model_type: str,
                  base_url: str,
                  api_key: str,
-                 proxy_config: Optional[Dict[str, str]] = None
+                 neo4j_user: str = None,
+                 neo4j_pass: str = None,
+                 neo4j_db: str = None,
+                 neo4j_uri: str = None,
+                 proxy_config: Optional[Dict[str, str]] = None,
                   ):
         
         self.extractor = Extractor(proxy_config)
@@ -33,6 +39,12 @@ class GraphBuilder:
         )
         self.visited = set()
         self.urls = []
+        self._neo4j_config = {
+            "neo4j_user": neo4j_user,
+            "neo4j_pass": neo4j_pass,
+            "neo4j_db": neo4j_db,
+            "neo4j_uri": neo4j_uri
+        }
 
     async def _crawl(self, url: str, extractor: Extractor, recollection_deep: int):
         self.visited.clear()
@@ -87,4 +99,22 @@ class GraphBuilder:
             None
         """
         await self._crawl(url, self.extractor_ai, recollection_deep)
+
+    def add_nodes(self, nodes: list):
+        """
+        Adds nodes to the Neo4j database.
+        Args:
+            nodes (list): List of nodes to be added.
+        Returns:
+            None
+        """
+        RepositoryService().clean_graph_db()
+        with open("uprchat/harvester/mapping_document.json", "r", encoding="utf-8") as f:
+            config = f.read()
+            data = json.dumps(nodes)
+            m_service: MapperService = MapperService(
+                config,
+                data
+            )
+            m_service.start_mapping()
 

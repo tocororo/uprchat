@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     model_api_key: str 
     base_url: str
     postgres_database_url: str
+    postgres_user: str
+    postgres_password: str
+    postgres_db: str
     secret: str
     algorithm: str
     neo4j_uri: str
