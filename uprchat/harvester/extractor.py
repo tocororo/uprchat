@@ -62,7 +62,7 @@ class Extractor:
                 "type": "document",
                 "url": url,
                 "summary": summary,
-                "stored_in": str(path),
+                "stored_in": path.as_posix()
             }
         elif content_type == "docx":
             path = DOC_DIR / f"{filename}.docx"
@@ -72,7 +72,7 @@ class Extractor:
                 "type": "document",
                 "url": url,
                 "summary": summary,
-                "stored_in": str(path),
+                "stored_in": path.as_posix()
             }
         elif content_type == "pptx":
             path = PPT_DIR / f"{filename}.pptx"
@@ -82,13 +82,14 @@ class Extractor:
                 "type": "document",
                 "url": url,
                 "summary": summary,
-                "stored_in": str(path),
+                "stored_in": path.as_posix()
             }
         elif content_type == "site":
             path = HTML_DIR / f"{filename}.html"
             self.downloader.save_file(content, path)
             data = await self.extraction_xpath_to_json(url)
-            data["stored_in"] = str(path)
+            if data:
+                data["stored_in"] = path.as_posix()
         else:
             logger.error(f"Unsupported content type: {content_type}")
         return data
@@ -114,7 +115,7 @@ class Extractor:
                 | "application/vnd.openxmlformats-officedocument.presentationml.slideshow"
             ):
                 return "pptx"
-            case "text/html":
+            case "text/html" | "text/html; charset=utf-8":
                 return "site"
             case _:
                 return content_type
@@ -151,7 +152,7 @@ class Extractor:
         config = CrawlerRunConfig(
             extraction_strategy=JsonXPathExtractionStrategy(schema, verbose=True),
             exclude_all_images=True,
-            page_timeout=100000,
+            page_timeout=10000000,
             cache_mode=CacheMode.BYPASS,
             js_code="window.scrollTo(0, document.body.scrollHeight);",
             delay_before_return_html=5
@@ -177,7 +178,7 @@ class Extractor:
 
 class PageInformation(BaseModel):
     title: str = Field(..., description="the title element for the page")
-    body: str = Field(
+    summary: str = Field(
         ..., description="The relevant information associated to the page title"
     )
 
@@ -270,7 +271,7 @@ class ExtractorLLM(Extractor):
                 "type": "page",
                 "url": url,
                 "title": info.get("title", ""),
-                "body": info.get("body", ""),
+                "summary": info.get("summary", ""),
                 "links": result.links.get("internal", []),
             }
             return data

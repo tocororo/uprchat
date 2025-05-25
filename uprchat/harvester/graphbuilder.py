@@ -1,8 +1,12 @@
 
 import json
-from typing import Dict, Optional
+from typing import Dict, List, Optional
+
+from tomlkit import document
 from uprchat.harvester.extractor import Extractor, ExtractorLLM
 from uprchat.harvester.logger import setup_logger
+# from hd2neo4j.services import RepositoryService, MapperService
+from uprchat.harvester.utils import clean_text_for_neo4j, extract_source_information
 from uprchat.mapper.services import RepositoryService, MapperService
 
 logger = setup_logger(__name__)
@@ -62,6 +66,8 @@ class GraphBuilder:
                 self.visited.add(current_url)
                 if not result:
                     continue
+                element = self._get_data_from_result(result)
+                self.add_nodes([element], result["type"])
                 links = result.get("links", None)
                 if links:
                     internal_links = [
@@ -71,8 +77,21 @@ class GraphBuilder:
                     ]
                     if internal_links:
                         new_urls.extend(internal_links)
-                logger.info(f"Extracted data: {result}")
             self.urls.append(new_urls)
+            
+    def _get_data_from_result(self, result: Dict) -> Dict:
+        source = extract_source_information(result["url"])
+        summary = clean_text_for_neo4j(result["summary"])
+        data = {
+            "url": result["url"],
+            "stored_in": result["stored_in"],
+            "source":  source,
+            "summary": summary
+        }
+        if result["type"] == "page":
+            data["title"] = clean_text_for_neo4j(result["title"])
+
+        return data
 
     async def start_recollection(
         self, url: str, recollection_deep: int = 99999999
@@ -100,21 +119,47 @@ class GraphBuilder:
         """
         await self._crawl(url, self.extractor_ai, recollection_deep)
 
-    def add_nodes(self, nodes: list):
+    def add_nodes(self, nodes: List[Dict[str, str]], entity: str) -> None:
         """
         Adds nodes to the Neo4j database.
         Args:
-            nodes (list): List of nodes to be added.
+            nodes: List[Dict[str, str]] 
+            entity: str
         Returns:
             None
         """
-        RepositoryService().clean_graph_db()
-        with open("uprchat/harvester/mapping_document.json", "r", encoding="utf-8") as f:
+        with open(f'uprchat/harvester/mappings/mapping_{entity}.json', 'r') as f:
             config = f.read()
             data = json.dumps(nodes)
             m_service: MapperService = MapperService(
                 config,
                 data
             )
+            # m_service: MapperService = MapperService(
+            #     json.loads(config),
+            #     nodes,
+            #     RepositoryService(
+            #         self._neo4j_config["neo4j_uri"],
+            #         self._neo4j_config["neo4j_user"],
+            #         self._neo4j_config["neo4j_pass"],
+            #         self._neo4j_config["neo4j_db"]
+            #     )
+            # )
             m_service.start_mapping()
 
+
+    def clear_graph(self):
+        """
+        Clears the Neo4j database.
+        Args:
+            None
+        Returns:
+            None
+        """
+        r_service: RepositoryService = RepositoryService(
+            self._neo4j_config["neo4j_uri"],
+            self._neo4j_config["neo4j_user"],
+            self._neo4j_config["neo4j_pass"],
+            self._neo4j_config["neo4j_db"]
+        )
+        r_service.clean_graph_db()
