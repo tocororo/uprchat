@@ -1,0 +1,44 @@
+{
+    "name": "basic",
+    "description": "Mapping for basic entities",
+    "entities": [
+        {
+            "name": "Subject",
+            "mapping": {
+                "required": [
+                    "name",
+                    "about"
+                ],
+                "_vectorize": {
+                    "strategy": "Document Embeddings",
+                    "values": [
+                        "name",
+                        "about"
+                    ],
+                    "phrase": "la asignatura :name es sobre :about"
+                },
+                "_class": "Subject",
+                "properties": {
+                    "identifiers": {
+                        "__predicate": "idtype",
+                        "__object": "name"
+                    },
+                    "name": "id",
+                    "about": "about",
+                    "related_subjects": {
+                        "__relation": "name",
+                        "__predicate": "RELATED_SUBJECTS",
+                        "__target": "Subject",
+                        "name": "id"
+                    },
+                    "referenced_in": {
+                        "__relation": "url",
+                        "__predicate": "REFERENCED_IN",
+                        "__target": "Page",
+                        "url": "id"
+                    }
+                }
+            }
+        }
+    ]
+}

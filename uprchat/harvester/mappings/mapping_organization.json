@@ -1,0 +1,43 @@
+{
+    "name": "basic",
+    "description": "Mapping for basic entities",
+    "entities": [
+        {
+            "name": "Organization",
+            "mapping": {
+                "required": [
+                    "name",
+                    "abbreviation",
+                    "about"
+                ],
+                "_vectorize": {
+                    "strategy": "Document Embeddings",
+                    "values": [
+                        "name",
+                        "abbreviation",
+                        "about"
+                    ],
+                    "phrase": "la organizaacion :name (:abbreviation) es :about"
+                },
+                "_class": "Organization",
+                "properties": {
+                    "identifiers": {
+                        "__predicate": "idtype",
+                        "__object": "name"
+                    },
+                    "name": "id",
+                    "about": "about",
+                    "abbreviation": "abbreviation",
+                    "type": "type",
+                    "website": "website",
+                    "referenced_in": {
+                        "__relation": "url",
+                        "__predicate": "REFERENCED_IN",
+                        "__target": "Page",
+                        "url": "id"
+                    }
+                }
+            }
+        }
+    ]
+}

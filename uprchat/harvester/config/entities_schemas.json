@@ -1,0 +1,54 @@
+{
+  "person": {
+    "name": "Full name of the person",
+    "about": "Concise summary of the person’s background, achievements, and significance",
+    "occupation": "Primary academic or professional role",
+    "affiliated_to": {
+      "name": "Name of the organization to which the person belongs",
+      "target": "organization"
+    },
+    "referenced_in": {
+      "url": "URL of the source page",
+      "target": "page"
+    }
+  },
+  "organization": {
+    "name": "Official name of the organization",
+    "about": "Brief summary of the organization’s mission, history, and scope",
+    "abbreviation": "Short identifier or acronym of the organization",
+    "type": "Nature of the organization (e.g., university, institute, company)",
+    "website": "Institutional website URL",
+    "referenced_in": {
+      "url": "URL of the source page",
+      "target": "page"
+    }
+  },
+  "subject": {
+    "name": "Official designation of the subject area or discipline",
+    "about": "Summary of the subject’s scope, core topics, and academic relevance",
+    "related_subjects": {
+      "name": "Name of another closely related subject",
+      "target": "subject"
+    },
+    "referenced_in": {
+      "url": "URL of the source page",
+      "target": "page"
+    }
+  },
+  "concept": {
+    "name": "Official designation of the concept",
+    "definition": "Precise, concise statement of the concept’s meaning",
+    "related_subjects": {
+      "name": "Official designation of the subject area",
+      "target": "subject"
+    },
+    "related_concepts": {
+      "name": "Official designation of another concept",
+      "target": "concept"
+    },
+    "referenced_in": {
+      "url": "URL of the source page",
+      "target": "page"
+    }
+  }
+}
