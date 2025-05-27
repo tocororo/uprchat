@@ -2,7 +2,6 @@
 import json
 from typing import Dict, List, Optional
 
-from tomlkit import document
 from uprchat.harvester.extractor import Extractor, ExtractorLLM
 from uprchat.harvester.logger import setup_logger
 # from hd2neo4j.services import RepositoryService, MapperService
@@ -67,6 +66,7 @@ class GraphBuilder:
                 if not result:
                     continue
                 element = self._get_data_from_result(result)
+                print(element)
                 self.add_nodes([element], result["type"])
                 links = result.get("links", None)
                 if links:
@@ -77,6 +77,12 @@ class GraphBuilder:
                     ]
                     if internal_links:
                         new_urls.extend(internal_links)
+                if extractor == self.extractor_ai:
+                    entities = result.get("entities", {})
+                    for entity_type in entities.keys():
+                        for entity in entities[entity_type]:
+                            entity["page"] = element
+                    self.add_entities_nodes(entities)
             self.urls.append(new_urls)
             
     def _get_data_from_result(self, result: Dict) -> Dict:
@@ -147,6 +153,30 @@ class GraphBuilder:
             # )
             m_service.start_mapping()
 
+    def add_entities_nodes(
+        self, nodes: Dict[str, List[Dict[str, str]]]
+    ) -> None:
+        """
+        Adds nodes to the Neo4j database based on a configuration file.
+        Args:
+            nodes: Dict[str, List[Dict[str, str]]]
+        Returns:
+            None
+        """
+        for entity, data in nodes.items():
+            self.add_nodes(data, entity)
+
+    def get_entities_from_raw_data(
+        self, raw_data: str
+    ) -> None:
+        """
+        Extracts entities from raw data and adds them to the Neo4j database.
+        Args:
+            raw_data: str
+        Returns:
+            None
+        """
+        
 
     def clear_graph(self):
         """

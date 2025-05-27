@@ -32,7 +32,7 @@
                         "__target": "Organization",
                         "name": "name"
                     },
-                    "referenced_in": {
+                    "page": {
                         "__relation": "url",
                         "__predicate": "REFERENCED_IN",
                         "__target": "Page",

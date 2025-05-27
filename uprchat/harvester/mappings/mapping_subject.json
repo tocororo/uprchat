@@ -31,7 +31,7 @@
                         "__target": "Subject",
                         "name": "id"
                     },
-                    "referenced_in": {
+                    "page": {
                         "__relation": "url",
                         "__predicate": "REFERENCED_IN",
                         "__target": "Page",

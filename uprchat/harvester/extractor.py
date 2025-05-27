@@ -11,12 +11,15 @@ from crawl4ai import (
     LLMExtractionStrategy,
 )
 from pydantic import BaseModel, Field
+from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage, SystemMessage
+
 
 from uprchat.harvester.config import PDF_DIR, DOC_DIR, PPT_DIR, HTML_DIR
 from uprchat.harvester.downloader import Downloader
 from uprchat.harvester.parser import Parser, ParserAI
 
-from uprchat.harvester.utils import get_filename_from_url
+from uprchat.harvester.utils import extract_text_to_document, get_filename_from_url
 from uprchat.harvester.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -213,12 +216,49 @@ class ExtractorLLM(Extractor):
             path = HTML_DIR / f"{filename}.html"
             self.downloader.save_file(content, path)
             data = await self.extraction_using_llm(url)
+            data["url"] = url
             data["stored_in"] = str(path)
         else:
             data = await super()._handle_content_type(content_type, content, filename, url)
             if not data:
                 return None
+        extracted_text = extract_text_to_document(content, content_type)
+        entities = self.extract_entities(extracted_text)
+        if entities:
+            data["entities"] = entities
+        else:
+            logger.warning(f"No entities extracted from {url}")
         return data
+
+    def extract_entities(self, document):
+        """
+        Extracts entities from the document using the LLM.
+        Args:
+            document (Document): The document to process.
+        Returns:
+            dict: The extracted entities.
+        """
+        with open("uprchat/harvester/config/entities_schemas.json", 'r', encoding='utf-8') as file:
+            text = file.read()
+    
+        user_prompt = f"""
+            Extract all entities from the following text according to the provided schema. Return results as a JSON object with entities grouped by type, presented as plain text without any wrapping in code blocks or any characters extraneous to the raw JSON.
+            Schema:
+            {text}
+        """
+        dict_str = self.run_prompt_custom_llm(document, user_prompt)
+        try:
+            entities = json.loads(dict_str)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {e}")
+            logger.info("Trying to extract entities again")
+            try:
+                entities = json.loads(dict_str[7:-4])
+            except Exception as error:
+                logger.error(f"Error decoding JSON: {error}")
+                logger.info("Trying to extract entities again")
+                entities = self.extract_entities(document)
+        return entities
 
     async def extraction_using_llm(self, url: str):
         """
@@ -275,3 +315,24 @@ class ExtractorLLM(Extractor):
                 "links": result.links.get("internal", []),
             }
             return data
+    
+    def run_prompt_custom_llm(self, document, user_prompt):
+        llm = ChatOpenAI(
+            model=self.model_name,
+            base_url=self.base_url, 
+            api_key=self.api_key
+        )
+        
+        system_message = "You are an expert reader. Using only the following document content, answer the prompt precisely."
+        
+        messages = [
+            SystemMessage(content=system_message),
+            HumanMessage(content=f"""Document:
+            {document.page_content}
+            Prompt:
+            {user_prompt}""")
+        ]
+        
+        # Llamada directa al LLM (LLMChain está deprecado)
+        response = llm.invoke(messages)
+        return response.content

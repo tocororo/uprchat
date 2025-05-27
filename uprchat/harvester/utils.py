@@ -3,6 +3,14 @@ import re
 from typing import Dict
 from urllib.parse import urlparse
 
+from io import BytesIO
+from langchain.schema import Document
+
+import fitz
+from docx import Document as DocxDocument
+from pptx import Presentation
+from bs4 import BeautifulSoup
+
 def get_filename_from_url(url: str) -> str:
     """
     Generates a unique filename based on the URL and current timestamp.
@@ -63,3 +71,39 @@ def clean_text_for_neo4j(text: str) -> str:
     text = re.sub(r"\s+", " ", text).strip()
 
     return text
+
+
+def extract_text_to_document(file_bytes: bytes, file_type: str) -> Document:
+    
+    file_type = file_type.lower()
+    extracted_text = ""
+
+    if file_type == "pdf":
+        pdf_stream = BytesIO(file_bytes)
+        pdf = fitz.open(stream=pdf_stream, filetype="pdf")
+        extracted_text = "\n".join(
+            page.extract_text() or "" for page in pdf.pages
+        )
+
+    elif file_type == "docx":
+        doc = DocxDocument(BytesIO(file_bytes))
+        extracted_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+
+    elif file_type == "pptx":
+        prs = Presentation(BytesIO(file_bytes))
+        extracted_text = "\n".join(
+            shape.text for slide in prs.slides for shape in slide.shapes if hasattr(shape, "text")
+        )
+
+    elif file_type == "site":
+        soup = BeautifulSoup(file_bytes, "html.parser")
+        extracted_text = soup.get_text(separator="\n", strip=True)
+
+    else:
+        raise ValueError(f"Unsupported file type: {file_type}")
+
+    return Document(
+        page_content=extracted_text,
+        metadata={"source_type": file_type}
+    )
+

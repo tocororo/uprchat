@@ -30,7 +30,7 @@
                     "abbreviation": "abbreviation",
                     "type": "type",
                     "website": "website",
-                    "referenced_in": {
+                    "page": {
                         "__relation": "url",
                         "__predicate": "REFERENCED_IN",
                         "__target": "Page",
