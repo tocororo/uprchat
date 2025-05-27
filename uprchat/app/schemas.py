@@ -29,6 +29,9 @@ class LLMQuery(BaseModel):
 class LLMQueryCreate(LLMQuery):
     pass
 
+class LLMQueryUpdate(LLMQuery):
+    pass
+
 class LLMQueryDB(LLMQuery):
     id: int
     timestamp: datetime 
