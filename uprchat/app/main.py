@@ -6,17 +6,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db_config import create_db_and_tables
-from .routes import (
-    urls,
-    domains,
-    sources,
-    models,
-    collectors,
-    jobs,
-    users,
-    chats,
-    llmqueries,
-)
+# from .routes import (
+#     urls,
+#     domains,
+#     sources,
+#     models,
+#     collectors,
+#     jobs,
+#     users,
+#     chats,
+#     llmqueries,
+# )
 from .routes.mapper import mapper_router
 
 # Use the commented implementation of the logger for customs logs
