@@ -1,99 +1,34 @@
-# from fastapi import APIRouter, Depends, status, Query, HTTPException, Body
-# from sqlmodel import Session, select, delete
-# from typing import Annotated
-# from ..config import get_settings
-# from ..models import Chat, ChatCreate, User, LLMQuery
-# from ..db_config import get_session
-# from .users import current_user
-# from ...agents.simpleagent import SimpleAgent
-
-# rt = APIRouter(prefix="/chats", tags=["chats"])
+from fastapi import APIRouter, Depends, status, HTTPException
+from sqlmodel import Session
+from typing import Annotated
+from uprchat.app.schemas import ChatDB
+from uprchat.app.chats.services import create_chat, read_all_chats, read_chat, delete_chat
+from ..db_config import get_session
+from uprchat.app.users.utils import get_current_user_uuid
+from uuid import UUID
 
 
-# @rt.post("/", response_model=Chat, status_code=status.HTTP_201_CREATED)
-# async def create_chat(
-#     session: Annotated[Session, Depends(get_session)],
-#     username: Annotated[str, Depends(current_user)],
-#     chat: ChatCreate,
-# ):
-#     user_id = session.exec(select(User).where(User.username == username)).first().id
-#     chat = Chat(title=chat.title, user_id=user_id)
-#     session.add(chat)
-#     session.commit()
-#     session.refresh(chat)
-#     return chat
+rt = APIRouter(prefix="/chats", tags=["chats"])
 
 
-# @rt.get("/", response_model=list[Chat], status_code=status.HTTP_200_OK)
-# async def get_chats(
-#     session: Annotated[Session, Depends(get_session)],
-#     username: Annotated[str, Depends(current_user)],
-#     offset: int = 0,
-#     limit: Annotated[int, Query(le=100)] = 100,
-# ):
-#     user_id = session.exec(select(User).where(User.username == username)).first().id
-#     chats = session.exec(
-#         select(Chat).where(Chat.user_id == user_id).offset(offset).limit(limit)
-#     ).all()
-#     return chats
+@rt.post("/",status_code=status.HTTP_201_CREATED,response_model=ChatDB)
+async def create_new_chat(
+    session: Annotated[Session, Depends(get_session)],
+    user_id: Annotated[UUID,Depends(get_current_user_uuid)]
+):
+    return await create_chat(user_id=user_id,session=session)
 
+@rt.get('/',status_code=status.HTTP_200_OK,response_model=list[ChatDB])
+async def get_all_chats(user_id: Annotated[UUID,Depends(get_current_user_uuid)],session: Annotated[Session,Depends(get_session)], offset: int = 0, limit: int = 100):
+    return await read_all_chats(session=session,offset=offset, limit=limit, user_id=user_id)
 
-# @rt.get("/{id}", response_model=list[Chat], status_code=status.HTTP_200_OK)
-# async def get_chat(
-#     session: Annotated[Session, Depends(get_session)],
-#     username: Annotated[str, Depends(current_user)],
-#     id: int,
-#     offset: int = 0,
-#     limit: Annotated[int, Query(le=100)] = 100,
-# ):
-#     chat = session.exec(
-#         select(Chat).where(Chat.id == id).offset(offset).limit(limit)
-#     ).first()
-#     return chat
+@rt.get('/{chat_id}',status_code=status.HTTP_200_OK,response_model=ChatDB)
+async def get_all_chats(chat_id: int ,session: Annotated[Session,Depends(get_session)], offset: int = 0, limit: int = 100):
+    result = await read_chat(chat_id=chat_id,session=session)
+    if(result is None):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Chat not found")
+    return result
 
-
-# @rt.delete("/", status_code=status.HTTP_200_OK)
-# async def delete_chats(
-#     session: Annotated[Session, Depends(get_session)],
-#     username: Annotated[str, Depends(current_user)],
-# ):
-#     user_id = session.exec(select(User).where(User.username == username)).first().id
-#     session.exec(delete(Chat).where(Chat.user_id == user_id))
-#     session.commit()
-#     return "Chats deleted"
-
-
-# @rt.delete("/{id}", status_code=status.HTTP_200_OK)
-# async def delete_chats(
-#     session: Annotated[Session, Depends(get_session)],
-#     id: int,
-#     username: Annotated[str, Depends(current_user)],
-# ):
-#     session.exec(delete(Chat).where(Chat.id == id))
-#     session.commit()
-#     return "Chat deleted"
-
-
-# @rt.post("/prompt", response_model=str, status_code=status.HTTP_200_OK)
-# async def prompt(input: str = Body()):
-#     properties_description = {  # description of entity props
-#         "name": "Name of the entity",
-#         "uri": "URI of the entity, it is a unique identifier",
-#         "gender": "Gender of the entity, if applicable",
-#         "title": "Title of the entity",
-#     }
-#     settings = get_settings()
-#     agent = SimpleAgent(
-#         settings.model,
-#         settings.modeltxttocypher,
-#         settings.neo4j_uri,
-#         settings.neo_user,
-#         settings.neo_pass,
-#         properties_description,
-#     )
-#     output = agent.generate_response(input)
-#     # llmq = LLMQuery(input=input, output=output)
-#     # session.add(llmq)
-#     # session.commit()
-#     # session.refresh(llmq)
-#     return output
+@rt.delete('/{chat_id}',status_code=status.HTTP_204_NO_CONTENT)
+async def get_all_chats(chat_id: int ,session: Annotated[Session,Depends(get_session)], offset: int = 0, limit: int = 100):
+    return await delete_chat(chat_id=chat_id,session=session)

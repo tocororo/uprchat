@@ -6,13 +6,14 @@ from fastapi import HTTPException,status
 
 async def create_llmquery(llmquery: LLMQueryCreate,chat_id: int,session: Session):
     try:
-        llmquery_db = LLMQuery(chat_id=chat_id,input=llmquery.input,output=llmquery.output)
+        llmquery_db = LLMQuery(**llmquery.model_dump())
+        llmquery_db.chat_id = chat_id
         session.add(llmquery_db)
         session.commit()
         session.refresh(llmquery_db)
         return llmquery_db
-    except Exception() as e:
-        print(f"Error creating llmquery: {e}")
+    except:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error creating llmquery")
 
 async def read_llmquery(llmquery_id: int,session: Session):
     try:
@@ -20,8 +21,8 @@ async def read_llmquery(llmquery_id: int,session: Session):
         if(not result):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="LLMQuery not found")
         return result
-    except Exception() as e:
-        print(f"Error reading llmquery: {e}")
+    except:
+        print(f"Error reading llmquery")
 
 async def read_all_llmqueries(offset: int, limit: int,session: Session):
     try:
@@ -29,8 +30,8 @@ async def read_all_llmqueries(offset: int, limit: int,session: Session):
         if(not result):
             return None
         return result
-    except Exception() as e:
-        print(f"Error reading llmqueries: {e}")
+    except:
+        print(f"Error reading llmqueries")
 
 async def update_llmquery(llmquery_id: int, llmquery_update: LLMQueryUpdate, session: Session):
     try:
@@ -41,8 +42,8 @@ async def update_llmquery(llmquery_id: int, llmquery_update: LLMQueryUpdate, ses
         session.commit()
         session.refresh(llmquery)
         return llmquery
-    except Exception() as e:
-        print(f"Error updating llmquery: {e}")
+    except:
+        print(f"Error updating llmquery")
 
 
 async def delete_llmquery(llmquery_id: int, session: Session):
@@ -50,5 +51,5 @@ async def delete_llmquery(llmquery_id: int, session: Session):
         llmquery = await read_llmquery(llmquery_id=llmquery_id,session=session)
         session.delete(llmquery)
         session.commit()
-    except Exception() as e:
-        print(f"Error deleting llmquery: {e}")
+    except:
+        print(f"Error deleting llmquery")

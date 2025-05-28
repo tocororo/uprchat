@@ -6,17 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db_config import create_db_and_tables
-# from .routes import (
-#     urls,
-#     domains,
-#     sources,
-#     models,
-#     collectors,
-#     jobs,
-#     users,
-#     chats,
-#     llmqueries,
-# )
+from .routes import chats,llmqueries,users
 from .routes.mapper import mapper_router
 
 # Use the commented implementation of the logger for customs logs
@@ -43,17 +33,10 @@ def root():
     return "Tables created"
 
 
-# app.include_router(urls.rt)
-# app.include_router(domains.rt)
-# app.include_router(sources.rt)
-# app.include_router(models.rt)
-# app.include_router(collectors.rt)
-# app.include_router(jobs.rt)
-# app.include_router(users.rt)
-# app.include_router(chats.rt)
-# app.include_router(llmqueries.rt)
+app.include_router(chats.rt)
 app.include_router(crawler.rt)
-
+app.include_router(llmqueries.rt)
+app.include_router(users.rt)
 app.include_router(mapper_router.router)
 
 

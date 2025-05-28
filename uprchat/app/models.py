@@ -27,6 +27,7 @@ class LLMQuery(SQLModel, table=True):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     chat_id: int = Field(foreign_key="chat.id")
 
+
 class CrawlerData(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     uri: str = Field(unique=True, index=True)

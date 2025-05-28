@@ -13,14 +13,13 @@ class UserDB(User):
     id: UUID
 
 class Chat(BaseModel):
-    id: int
     user_id: UUID
 
 class ChatCreate(Chat):
     pass
 
 class ChatDB(Chat):
-    pass
+    id: int
 
 class LLMQuery(BaseModel):
     input: dict 
