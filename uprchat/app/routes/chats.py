@@ -23,12 +23,12 @@ async def get_all_chats(user_id: Annotated[UUID,Depends(get_current_user_uuid)],
     return await read_all_chats(session=session,offset=offset, limit=limit, user_id=user_id)
 
 @rt.get('/{chat_id}',status_code=status.HTTP_200_OK,response_model=ChatDB)
-async def get_all_chats(chat_id: int ,session: Annotated[Session,Depends(get_session)], offset: int = 0, limit: int = 100):
+async def get_one_chat(chat_id: int ,session: Annotated[Session,Depends(get_session)]):
     result = await read_chat(chat_id=chat_id,session=session)
     if(result is None):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Chat not found")
     return result
 
 @rt.delete('/{chat_id}',status_code=status.HTTP_204_NO_CONTENT)
-async def get_all_chats(chat_id: int ,session: Annotated[Session,Depends(get_session)], offset: int = 0, limit: int = 100):
+async def delete_one_chat(chat_id: int ,session: Annotated[Session,Depends(get_session)]):
     return await delete_chat(chat_id=chat_id,session=session)

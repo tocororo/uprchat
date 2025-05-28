@@ -18,20 +18,16 @@ async def create_llmquery(llmquery: LLMQueryCreate,chat_id: int,session: Session
 async def read_llmquery(llmquery_id: int,session: Session):
     try:
         result = session.exec(select(LLMQuery).where(LLMQuery.id == llmquery_id)).first()
-        if(not result):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="LLMQuery not found")
         return result
     except:
-        print(f"Error reading llmquery")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error reading llmquery")
 
-async def read_all_llmqueries(offset: int, limit: int,session: Session):
+async def read_all_llmqueries(chat_id: int,offset: int, limit: int,session: Session):
     try:
-        result = session.exec(select(LLMQuery).offset(offset).limit(limit)).all()
-        if(not result):
-            return None
+        result = session.exec(select(LLMQuery).where(LLMQuery.chat_id == chat_id).offset(offset).limit(limit)).all()
         return result
     except:
-        print(f"Error reading llmqueries")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error reading llmqueries")
 
 async def update_llmquery(llmquery_id: int, llmquery_update: LLMQueryUpdate, session: Session):
     try:
@@ -43,7 +39,7 @@ async def update_llmquery(llmquery_id: int, llmquery_update: LLMQueryUpdate, ses
         session.refresh(llmquery)
         return llmquery
     except:
-        print(f"Error updating llmquery")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error updating llmquery")
 
 
 async def delete_llmquery(llmquery_id: int, session: Session):
@@ -52,4 +48,4 @@ async def delete_llmquery(llmquery_id: int, session: Session):
         session.delete(llmquery)
         session.commit()
     except:
-        print(f"Error deleting llmquery")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error deleting llmquery")
