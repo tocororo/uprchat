@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlmodel import Session
 from typing import Annotated
-from uprchat.app.schemas import LLMQueryCreate,LLMQueryDB,LLMQueryUpdate
+from uprchat.app.llmqueries.schemas import LLMQueryCreate,LLMQueryDB,LLMQueryUpdate
 from uprchat.app.llmqueries.services import create_llmquery,read_all_llmqueries,read_llmquery,update_llmquery,delete_llmquery
-from ..db_config import get_session
+from uprchat.app.database.db_config import get_session
 
 rt = APIRouter(prefix="/llmqueries", tags=["llmqueries"])
 
 
 @rt.post("/", response_model=LLMQueryDB, status_code=status.HTTP_201_CREATED)
-async def create_llmq(
+async def create_new_llmq(
     chat_id: int,
     session: Annotated[Session, Depends(get_session)], llmquery: LLMQueryCreate
 ):

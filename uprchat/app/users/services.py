@@ -1,14 +1,14 @@
-from uprchat.app.schemas import UserCreate
+from .schemas import UserCreate
 from sqlmodel import Session
-from .utils import exist_user
-from uprchat.app.models import User
+from .utils import get_user_data
+from uprchat.app.database.models import User
 
 
 async def login():
-    pass
+    return True
 
 async def register_user(user_create: UserCreate, session: Session):
-    user = exist_user(user_create.username,session)
+    user = get_user_data(user_create.username,session)
     if(not user):
        user_db = User(username=user_create.username)
        session.add(user_db)

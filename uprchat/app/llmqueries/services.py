@@ -1,5 +1,5 @@
-from uprchat.app.schemas import LLMQueryCreate,LLMQueryUpdate
-from uprchat.app.models import LLMQuery
+from .schemas import LLMQueryCreate,LLMQueryUpdate
+from uprchat.app.database.models import LLMQuery
 from sqlmodel import Session,select
 from fastapi import HTTPException,status
 

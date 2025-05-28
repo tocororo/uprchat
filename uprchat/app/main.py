@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db_config import create_db_and_tables
+from uprchat.app.database.db_config import create_tables
 from .routes import chats,llmqueries,users
 from .routes.mapper import mapper_router
 
@@ -29,7 +29,7 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-    create_db_and_tables()
+    create_tables()
     return "Tables created"
 
 
