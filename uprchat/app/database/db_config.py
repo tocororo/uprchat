@@ -7,7 +7,7 @@ from uprchat.app.config import get_settings
 
 
 url = get_settings().postgres_database_url
-engine = create_async_engine(url,echo=True)
+engine = create_async_engine(url)
 
 AsyncSessionLocal = sessionmaker(
     bind=engine,
