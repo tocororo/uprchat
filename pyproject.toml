@@ -24,6 +24,8 @@ scikit-learn = "^1.5.2"
 sentence-transformers = "^3.3.1"
 langchain-ollama = "^0.2.2"
 crawl4ai = "^0.4.247"
+asyncpg = "^0.30.0"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.41"}
 
 
 [tool.poetry.group.dev.dependencies]

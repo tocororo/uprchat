@@ -3,7 +3,7 @@ from datetime import datetime
 
 
 class LLMQuery(BaseModel):
-    input: dict 
+    input: list[dict] 
     output: dict 
 
 class LLMQueryCreate(LLMQuery):

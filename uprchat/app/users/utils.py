@@ -1,4 +1,5 @@
-from sqlmodel import Session,select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 from uprchat.app.database.models import User
 from typing import Annotated
 from fastapi import Depends,HTTPException,status
@@ -12,9 +13,9 @@ from uuid import UUID
 SECRET = get_settings().secret
 ALGORITHM = get_settings().algorithm
 
-def get_user_data(username: str, session: Session):
-    result = session.exec(select(User).where(User.username == username)).first()
-    return result
+async def get_user_data(username: str, session: AsyncSession):
+    result = await session.exec(select(User).where(User.username == username))
+    return result.first()
 
 def generate_token(uuid: UUID):
     data = {

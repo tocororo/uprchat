@@ -28,8 +28,8 @@ app.add_middleware(
 
 
 @app.get("/")
-def root():
-    create_tables()
+async def root():
+    await create_tables()
     return "Tables created"
 
 

@@ -1,7 +1,7 @@
-from sqlmodel import Field, SQLModel
-from datetime import datetime, timezone
+from sqlmodel import Field, SQLModel,Column
+from datetime import datetime
 from uuid import UUID, uuid4
-from sqlalchemy import JSON
+from sqlalchemy import JSON,ARRAY
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 
@@ -22,9 +22,9 @@ class Chat(SQLModel, table=True):
 
 class LLMQuery(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    input: dict = Field(default={}, sa_type=JSON)  
+    input: list[dict] = Field(default=[], sa_column=Column(ARRAY(JSON)))  
     output: dict = Field(default={}, sa_type=JSON)  
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now())
     chat_id: int = Field(foreign_key="chat.id")
 
 

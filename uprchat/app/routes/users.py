@@ -17,7 +17,7 @@ oauth2 = OAuth2PasswordBearer(tokenUrl='login')
 async def login_user(session: Annotated[Session, Depends(get_session)],form: Annotated[OAuth2PasswordRequestForm,Depends()]):
     valid_credentials = await login()
     if(valid_credentials):
-        user_data = get_user_data(username=form.username,session=session)
+        user_data = await get_user_data(username=form.username,session=session)
         user = UserCreate(username=form.username)
         if(user_data is None):
             result = await register_user(user_create=user,session=session)
