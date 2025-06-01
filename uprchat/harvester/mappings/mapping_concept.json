@@ -6,43 +6,40 @@
             "name": "Concept",
             "mapping": {
                 "required": [
-                    "name",
+                    "id",
                     "definition"
                 ],
                 "_vectorize": {
                     "strategy": "Document Embeddings",
                     "values": [
-                        "name",
+                        "id",
                         "definition"
                     ],
-                    "phrase": ":name es :definition"
+                    "phrase": ":id es :definition"
                 },
                 "_class": "Concept",
                 "properties": {
                     "identifiers": {
                         "__predicate": "idtype",
-                        "__object": "name",
+                        "__object": "id",
                         "idtype": "valuesOf:identifiers.url"
                     },
-                    "name": "id",
+                    "id": "id",
                     "definition": "about",
-                    "related_subjects": {
-                        "__relation": "name",
+                    "subject": {
+                        "__relation": "id",
                         "__predicate": "RELATED_SUBJECTS",
-                        "__target": "Subject",
-                        "name": "id"
+                        "__target": "Subject"
                     },
-                    "related_concepts": {
-                        "__relation": "name",
+                    "concept": {
+                        "__relation": "id",
                         "__predicate": "RELATED_CONCEPTS",
-                        "__target": "Concept",
-                        "name": "id"
+                        "__target": "Concept"
                     },
                     "page": {
-                        "__relation": "url",
+                        "__relation": "id",
                         "__predicate": "REFERENCED_IN",
-                        "__target": "Page",
-                        "url": "id"
+                        "__target": "Page"
                     }
                 },
                 "valuesOf": {

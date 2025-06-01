@@ -23,8 +23,8 @@ def get_filename_from_url(url: str) -> str:
     name = re.sub(r"[^A-Za-z0-9_-]", "", name)
     if not name:
         name = "file"
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-    return f"{name}_{timestamp}"
+   
+    return name
 
 def extract_source_information(url: str) -> Dict:
     """

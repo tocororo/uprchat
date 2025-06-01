@@ -6,17 +6,17 @@
             "name": "Source",
             "mapping": {
                 "required": [
-                    "url", 
+                    "id", 
                     "name"
                 ],
                 "_class": "Source",
                 "properties": {
                     "identifiers": {
                         "__predicate": "idtype",
-                        "__object": "url",
+                        "__object": "id",
                         "idtype": "valuesOf:identifiers.url"
                     },
-                    "url": "id",
+                    "id": "id",
                     "name": "name"
                 },
                 "valuesOf": {

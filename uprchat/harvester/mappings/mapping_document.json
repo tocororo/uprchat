@@ -6,7 +6,9 @@
             "name": "Document",
             "mapping": {
                 "required": [
-                    "url"
+                    "url",
+                    "summary",
+                    "recollection"
                 ],
                 "_vectorize": {
                     "strategy": "Document Embeddings",
@@ -23,15 +25,14 @@
                         "__object": "url",
                         "idtype": "valuesOf:identifiers.url"
                     },
-                    "url": "id",
+                    "id": "id",
                     "summary": "summary",
                     "stored_in": "stored_in",
+                    "recollection": "recollection",
                     "source": {
                         "__relation": "name",
                         "__predicate": "COLLECTED_FROM",
-                        "__target": "Source",
-                        "url": "url",
-                        "name": "name"
+                        "__target": "Source"
                     }
                 },
                 "valuesOf": {

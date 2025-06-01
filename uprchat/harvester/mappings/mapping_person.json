@@ -6,37 +6,37 @@
             "name": "Person",
             "mapping": {
                 "required": [
-                    "name",
+                    "id",
                     "about"
                 ],
                 "_vectorize": {
                     "strategy": "Document Embeddings",
                     "values": [
-                        "name",
+                        "id",
                         "about"
                     ],
-                    "phrase": "la perosona :name es :about"
+                    "phrase": "la perosona :id es :about"
                 },
                 "_class": "Person",
                 "properties": {
                     "identifiers": {
                         "__predicate": "idtype",
-                        "__object": "name"
+                        "__object": "id"
                     },
-                    "name": "id",
+                    "id": "id",
                     "occupation": "occupation",
                     "about": "about",
-                    "affiliated_to": {
-                        "__relation": "name",
+                    "organization": {
+                        "__relation": "id",
                         "__predicate": "AFFILIATED_TO",
                         "__target": "Organization",
-                        "name": "name"
+                        "id": "id"
                     },
                     "page": {
-                        "__relation": "url",
+                        "__relation": "id",
                         "__predicate": "REFERENCED_IN",
                         "__target": "Page",
-                        "url": "id"
+                        "id": "id"
                     }
                 }
             }
