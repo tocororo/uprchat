@@ -156,7 +156,7 @@ class Extractor:
                 {"name": "title", "selector": "//title", "type": "text"},
                 {
                     "name": "body",
-                    "selector": "//body//*[not(self::style or self::script)]",
+                    "selector": ".//body//*[not(self::script or self::style)]",
                     "type": "text",
                 },
             ],
@@ -320,7 +320,8 @@ class Extractor:
             - Any entity missing one or more required fields must **not** be included.  
             - If no entities of a given type are extracted, omit that key entirely from the final JSON.  
             - Relationship fields may be either a single object or a list, depending on the number of related entities.  
-            - Relationships must only reference entities that have already been extracted, regardless of which object invokes them.  
+            - Relationships must only reference entities that have already been extracted, regardless of which object invokes them.
+            And remember only JSON in plain text
             **Schema:**
             ```json
             {schema}
@@ -328,7 +329,6 @@ class Extractor:
         """
         dict_str = self.run_prompt_custom_llm(document, prompt)
         try:
-            print(dict_str)
             entities = json.loads(dict_str)
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {e}")
