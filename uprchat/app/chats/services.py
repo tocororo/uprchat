@@ -35,7 +35,7 @@ async def read_all_chats(user_id: UUID,offset: int, limit: int, session: AsyncSe
 async def delete_chat(chat_id: int,session: AsyncSession):
     try:
         chat = await read_chat(chat_id=chat_id,session=session)
-        session.delete(chat)
+        await session.delete(chat)
         await session.commit()
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error deleting chat")

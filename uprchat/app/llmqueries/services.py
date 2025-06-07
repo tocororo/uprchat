@@ -59,7 +59,7 @@ async def update_llmquery(llmquery_id: int, llmquery_update: LLMQueryUpdate, ses
 async def delete_llmquery(llmquery_id: int, session: AsyncSession):
     try:
         llmquery = await read_llmquery(llmquery_id=llmquery_id,session=session)
-        session.delete(llmquery)
+        await session.delete(llmquery)
         await session.commit()
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Error deleting llmquery")

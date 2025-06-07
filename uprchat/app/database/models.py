@@ -1,4 +1,4 @@
-from sqlmodel import Field, SQLModel,Column
+from sqlmodel import Field, SQLModel,Column,Relationship
 from datetime import datetime
 from uuid import UUID, uuid4
 from sqlalchemy import JSON,ARRAY
@@ -18,6 +18,7 @@ class User(SQLModel, table=True):
 class Chat(SQLModel, table=True):
     id: int | None = Field(default=None,primary_key=True)
     user_id: UUID = Field(foreign_key="user.id")
+    llmqueries: list['LLMQuery'] = Relationship(back_populates="chat",cascade_delete=True)
 
 
 class LLMQuery(SQLModel, table=True):
@@ -25,7 +26,8 @@ class LLMQuery(SQLModel, table=True):
     input: list[dict] = Field(default=[], sa_column=Column(ARRAY(JSON)))  
     output: dict = Field(default={}, sa_type=JSON)  
     timestamp: datetime = Field(default_factory=lambda: datetime.now())
-    chat_id: int = Field(foreign_key="chat.id")
+    chat_id: int = Field(foreign_key="chat.id",ondelete="CASCADE")
+    chat: Chat | None = Relationship(back_populates="llmqueries")
 
 
 class CrawlerData(SQLModel, table=True):
