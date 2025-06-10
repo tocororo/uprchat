@@ -29,6 +29,7 @@ langchain = {extras = ["openai"], version = "^0.3.25"}
 langchain-community = "^0.3.23"
 python-docx = "^1.1.2"
 python-pptx = "^1.0.2"
+langgraph = "^0.4.8"
 
 
 [tool.poetry.group.dev.dependencies]

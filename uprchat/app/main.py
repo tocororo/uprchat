@@ -51,7 +51,7 @@ def root():
 # app.include_router(collectors.rt)
 # app.include_router(jobs.rt)
 # app.include_router(users.rt)
-# app.include_router(chats.rt)
+app.include_router(chats.rt)
 # app.include_router(llmqueries.rt)
 app.include_router(crawler.rt)
 
