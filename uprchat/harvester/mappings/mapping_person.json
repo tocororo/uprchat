@@ -1,0 +1,45 @@
+{
+    "name": "basic",
+    "description": "Mapping for basic entities",
+    "entities": [
+        {
+            "name": "Person",
+            "mapping": {
+                "required": [
+                    "id",
+                    "about"
+                ],
+                "_vectorize": {
+                    "strategy": "Document Embeddings",
+                    "values": [
+                        "id",
+                        "about"
+                    ],
+                    "phrase": "la perosona :id es :about"
+                },
+                "_class": "Person",
+                "properties": {
+                    "identifiers": {
+                        "__predicate": "idtype",
+                        "__object": "id"
+                    },
+                    "id": "id",
+                    "occupation": "occupation",
+                    "about": "about",
+                    "organization": {
+                        "__relation": "id",
+                        "__predicate": "AFFILIATED_TO",
+                        "__target": "Organization",
+                        "id": "id"
+                    },
+                    "page": {
+                        "__relation": "id",
+                        "__predicate": "REFERENCED_IN",
+                        "__target": "Page",
+                        "id": "id"
+                    }
+                }
+            }
+        }
+    ]
+}

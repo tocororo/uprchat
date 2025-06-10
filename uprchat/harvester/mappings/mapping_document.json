@@ -1,0 +1,47 @@
+{
+    "name": "basic",
+    "description": "basic mapping raw data",
+    "entities": [
+        {
+            "name": "Document",
+            "mapping": {
+                "required": [
+                    "url",
+                    "summary",
+                    "recollection"
+                ],
+                "_vectorize": {
+                    "strategy": "Document Embeddings",
+                    "values": [
+                        "url",
+                        "summary"
+                    ],
+                    "phrase": "documento en :url es sobre :summary"
+                },
+                "_class": "Document",
+                "properties": {
+                    "identifiers": {
+                        "__predicate": "idtype",
+                        "__object": "url",
+                        "idtype": "valuesOf:identifiers.url"
+                    },
+                    "id": "id",
+                    "summary": "summary",
+                    "stored_in": "stored_in",
+                    "recollection": "recollection",
+                    "source": {
+                        "__relation": "name",
+                        "__predicate": "COLLECTED_FROM",
+                        "__target": "Source"
+                    }
+                },
+                "valuesOf": {
+                    "identifiers.idtype": {
+                        "url": "http://sceiba.cu/identifier#url"
+                    
+                    }
+                }
+            }
+        }
+    ]
+}

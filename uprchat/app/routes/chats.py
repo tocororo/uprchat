@@ -1,16 +1,17 @@
 from fastapi import APIRouter, Depends, status, HTTPException,Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Annotated
+
+from langchain_core.messages import HumanMessage
 from uprchat.app.chats.schemas import ChatDB
 from uprchat.app.chats.services import create_chat, read_all_chats, read_chat, delete_chat
 from uprchat.app.database.db_config import get_session
 from uprchat.app.users.utils import get_current_user_uuid
 from uprchat.app.routes.users import oauth2
+from uprchat.agents.graphrag_agent import agent
 from uuid import UUID
 
-
 rt = APIRouter(prefix="/chats", tags=["chats"])
-
 
 @rt.post("/",status_code=status.HTTP_201_CREATED,response_model=ChatDB)
 async def create_new_chat(
@@ -120,9 +121,8 @@ async def prompt():
         "type":"pdf"
     }]}
 
-@rt.post('/query')
-async def query(request: Request):
-    print(request.body)
-    return {
-        "text":"Respuesta de prueba"
-    }
+@rt.post("/prompt", response_model=str, status_code=status.HTTP_200_OK)
+async def prompt(input: str = Body()):
+    output = agent.invoke({"messages": HumanMessage(content=input)})["messages"][-1].content
+    return output
+

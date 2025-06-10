@@ -8,7 +8,7 @@ package-mode = false
 
 
 [tool.poetry.dependencies]
-python = "3.12.3"
+python = "^3.12.3"
 fastapi = "^0.111.1"
 Scrapy = "^2.11.2"
 neo4j = "^5.22.0"
@@ -23,11 +23,13 @@ python-multipart = "^0.0.17"
 scikit-learn = "^1.5.2"
 sentence-transformers = "^3.3.1"
 langchain-ollama = "^0.2.2"
-crawl4ai = "^0.4.247"
-asyncpg = "^0.30.0"
-sqlalchemy = {extras = ["asyncio"], version = "^2.0.41"}
-validators = "^0.35.0"
-
+crawl4ai = "^0.6.0"
+pymupdf = "^1.25.5"
+langchain = {extras = ["openai"], version = "^0.3.25"}
+langchain-community = "^0.3.23"
+python-docx = "^1.1.2"
+python-pptx = "^1.0.2"
+langgraph = "^0.4.8"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.2.5"

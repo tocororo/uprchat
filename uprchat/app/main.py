@@ -1,3 +1,4 @@
+
 from uprchat.app.routes import crawler
 import uvicorn
 import logging
@@ -31,7 +32,6 @@ app.add_middleware(
 async def root():
     await create_tables()
     return "Tables created"
-
 
 app.include_router(chats.rt)
 app.include_router(crawler.rt)

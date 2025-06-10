@@ -1,0 +1,98 @@
+{
+    "name": "basic",
+    "description": "Mapping for basic entities",
+    "entities": [
+        {
+            "name": "Concept",
+            "mapping": {
+                "required": [
+                    "id",
+                    "definition"
+                ],
+                "_vectorize": {
+                    "strategy": "Document Embeddings",
+                    "values": [
+                        "id",
+                        "definition"
+                    ],
+                    "phrase": ":id es :definition"
+                },
+                "_class": "Concept",
+                "properties": {
+                    "identifiers": {
+                        "__predicate": "idtype",
+                        "__object": "id",
+                        "idtype": "valuesOf:identifiers.url"
+                    },
+                    "id": "id",
+                    "definition": "about",
+                    "subject": {
+                        "__relation": "id",
+                        "__predicate": "RELATED_SUBJECTS",
+                        "__target": "Subject"
+                    },
+                    "concept": {
+                        "__relation": "id",
+                        "__predicate": "RELATED_CONCEPTS",
+                        "__target": "Concept"
+                    },
+                    "page": {
+                        "__relation": "id",
+                        "__predicate": "REFERENCED_IN",
+                        "__target": "Page"
+                    }
+                },
+                "valuesOf": {
+                    "identifiers.idtype": {
+                        "ark": "http://sceiba.cu/identifier#ark",
+                        "arxiv": "http://sceiba.cu/identifier#arxiv",
+                        "doi": "http://sceiba.cu/identifier#doi",
+                        "bibcode": "http://sceiba.cu/identifier#bibcode",
+                        "ean8": "http://sceiba.cu/identifier#ean8",
+                        "ean13": "http://sceiba.cu/identifier#ean13",
+                        "handle": "http://sceiba.cu/identifier#handle",
+                        "isbn": "http://sceiba.cu/identifier#isbn",
+                        "issn_l": "http://sceiba.cu/identifier#issn_l",
+                        "issn_p": "http://sceiba.cu/identifier#issn_p",
+                        "issn_e": "http://sceiba.cu/identifier#issn_e",
+                        "issn_c": "http://sceiba.cu/identifier#issn_c",
+                        "issn_o": "http://sceiba.cu/identifier#issn_o",
+                        "istc": "http://sceiba.cu/identifier#istc",
+                        "lsid": "http://sceiba.cu/identifier#lsid",
+                        "pmid": "http://sceiba.cu/identifier#pmid",
+                        "pmcid": "http://sceiba.cu/identifier#pmcid",
+                        "purl": "http://sceiba.cu/identifier#purl",
+                        "upc": "http://sceiba.cu/identifier#upc",
+                        "url": "http://sceiba.cu/identifier#url",
+                        "urn": "http://sceiba.cu/identifier#urn",
+                        "orcid": "http://sceiba.cu/identifier#orcid",
+                        "dni": "http://sceiba.cu/identifier#dni",
+                        "scopid": "http://sceiba.cu/identifier#scopid",
+                        "hrid": "http://sceiba.cu/identifier#hrid",
+                        "passp": "http://sceiba.cu/identifier#passp",
+                        "gnd": "http://sceiba.cu/identifier#gnd",
+                        "ads": "http://sceiba.cu/identifier#ads",
+                        "oai": "http://sceiba.cu/identifier#oai",
+                        "prnps": "http://sceiba.cu/identifier#prnps",
+                        "ernps": "http://sceiba.cu/identifier#ernps",
+                        "oaiurl": "http://sceiba.cu/identifier#oaiurl",
+                        "grid": "http://sceiba.cu/identifier#grid",
+                        "wkdata": "http://sceiba.cu/identifier#wkdata",
+                        "ror": "http://sceiba.cu/identifier#ror",
+                        "isni": "http://sceiba.cu/identifier#isni",
+                        "fudref": "http://sceiba.cu/identifier#fudref",
+                        "orgref": "http://sceiba.cu/identifier#orgref",
+                        "reup": "http://sceiba.cu/identifier#reup",
+                        "orgaid": "http://sceiba.cu/identifier#orgaid",
+                        "uniid": "http://sceiba.cu/identifier#uniid",
+                        "sceibaid": "http://sceiba.cu/identifier#sceibaid",
+                        "irouid": "http://sceiba.cu/identifier#irouid",
+                        "srcid": "http://sceiba.cu/identifier#srcid",
+                        "orgid": "http://sceiba.cu/identifier#orgid",
+                        "perid": "http://sceiba.cu/identifier#perid"
+                    }
+                }
+            }
+        }
+    ]
+}
