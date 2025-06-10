@@ -37,10 +37,20 @@ async def get_one_chat(chat_id: int ,session: Annotated[AsyncSession,Depends(get
 async def delete_one_chat(chat_id: int ,session: Annotated[AsyncSession,Depends(get_session)]):
     return await delete_chat(chat_id=chat_id,session=session)
 
-@rt.post("/prompt", response_model=str, status_code=status.HTTP_200_OK)
-async def prompt(input: str = Body()):
-    output = agent.invoke({"messages": HumanMessage(content=input)})["messages"][-1].content
-    return output
+@rt.post("/prompt", response_model=dict, status_code=status.HTTP_200_OK)
+async def prompt(input: dict = Body()):
+    print(input)
+    user_message = ""
+    ai_message = ""
+    for message in input['messages']:
+        if message['role'] == "user":
+            user_message = message['text']
+        else:
+            ai_message = message['ai']
+    output = agent.invoke({"messages": HumanMessage(content=user_message)})["messages"][-1].content
+    return {
+        "text": output
+    }
 
 # @rt.post('/prompt')
 # async def prompt():
