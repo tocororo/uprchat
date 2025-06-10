@@ -1,6 +1,6 @@
 from crawl4ai import AsyncWebCrawler, JsonCssExtractionStrategy, CacheMode
 from crawl4ai.async_configs import BrowserConfig, CrawlerRunConfig
-from uprchat.app.models import CrawlerData
+from uprchat.harvester.schemas import CrawlerData
 from uprchat.harvester.db_services.repository import HarvesterRepository
 from crawl4ai.extraction_strategy import LLMExtractionStrategy
 from pydantic import BaseModel, Field
