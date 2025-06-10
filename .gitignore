@@ -1,10 +1,14 @@
 .idea
 .DS_Store
 poetry.lock
-
+/uprchat/harvester/repositories/pdfs/*
+/uprchat/harvester/repositories/ppts/*
+/uprchat/harvester/repositories/docs/*
+/uprchat/harvester/repositories/htmls/*
 /venv
 __pycache__
 
 .env
 /.vscode
 *.log
+files

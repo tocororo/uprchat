@@ -1,0 +1,31 @@
+{
+    "name": "basic",
+    "description": "basic mapping raw data",
+    "entities": [
+        {
+            "name": "Source",
+            "mapping": {
+                "required": [
+                    "id", 
+                    "name"
+                ],
+                "_class": "Source",
+                "properties": {
+                    "identifiers": {
+                        "__predicate": "idtype",
+                        "__object": "id",
+                        "idtype": "valuesOf:identifiers.url"
+                    },
+                    "id": "id",
+                    "name": "name"
+                },
+                "valuesOf": {
+                    "identifiers.idtype": {
+                        "url": "http://sceiba.cu/identifier#url"
+                    
+                    }
+                }
+            }
+        }
+    ]
+}

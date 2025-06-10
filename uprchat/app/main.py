@@ -1,3 +1,4 @@
+
 from uprchat.app.routes import crawler
 import uvicorn
 import logging
@@ -5,18 +6,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .db_config import create_db_and_tables
-from .routes import (
-    urls,
-    domains,
-    sources,
-    models,
-    collectors,
-    jobs,
-    users,
-    chats,
-    llmqueries,
-)
+from uprchat.app.database.db_config import create_tables
+from .routes import chats,llmqueries,users
 from .routes.mapper import mapper_router
 
 # Use the commented implementation of the logger for customs logs
@@ -38,22 +29,14 @@ app.add_middleware(
 
 
 @app.get("/")
-def root():
-    create_db_and_tables()
+async def root():
+    await create_tables()
     return "Tables created"
 
-
-# app.include_router(urls.rt)
-# app.include_router(domains.rt)
-# app.include_router(sources.rt)
-# app.include_router(models.rt)
-# app.include_router(collectors.rt)
-# app.include_router(jobs.rt)
-# app.include_router(users.rt)
-# app.include_router(chats.rt)
-# app.include_router(llmqueries.rt)
+app.include_router(chats.rt)
 app.include_router(crawler.rt)
-
+app.include_router(llmqueries.rt)
+app.include_router(users.rt)
 app.include_router(mapper_router.router)
 
 
