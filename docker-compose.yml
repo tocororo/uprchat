@@ -1,21 +1,102 @@
 services:
-  neo4j:
-    container_name: neo4j
-    image: docker.uclv.cu/neo4j:5.20.0
-    ports:
-      - 7474:7474
-      - 7687:7687
+  db:
+    image: quay.io/lib/postgres:14.13
+    restart: "always"
     environment:
-      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
+      - "POSTGRES_USER=uprchat"
+      - "POSTGRES_PASSWORD=uprchat"
+      - "POSTGRES_DB=uprchat"
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uprchat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - uprchat-net
+    volumes:
+      - pg_data:/var/lib/postgresql/data  # Bind mount for critical data
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+
+  neo4j:
+    image: quay.io/lib/neo4j:5
+    restart: "always"
+    ports:
+      - "7474:7474"  # Browser interface
+      - "7687:7687"  # Bolt protocol
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    environment:
+      - NEO4J_AUTH=neo4j/uprchat
+      - NEO4J_dbms_default__database=uprchat
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
-      - NEO4J_PLUGINS=["apoc", "graph-data-science", "n10s"]
-    volumes:
-      - ./neo4j_db/data:/data
-      - ./neo4j_db/logs:/logs
-      - ./neo4j_db/import:/var/lib/neo4j/import
-      - ./neo4j_db/plugins:/plugins
+      - NEO4J_PLUGINS=["apoc","graph-data-science"]
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "uprchat", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - uprchat-net
+    
+    ulimits:
+      nofile:
+        soft: 40000
+        hard: 40000
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+volumes:
+  neo4j_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /uprchat/data/neo4j/data
+    labels:
+      - backup=true
+      - service=neo4j
+  neo4j_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /uprchat/data/neo4j/logs
+    labels:
+      - backup=true
+      - service=neo4j
+  pg_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /uprchat/data/postgres
+    labels:
+      - backup=true
+      - service=postgres
+
+networks:
+  uprchat-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/24
+
+
+
 
 #CALL n10s.graphconfig.init();
 #CREATE CONSTRAINT n10s_unique_uri FOR (r:Resource) REQUIRE r.uri IS UNIQUE;
