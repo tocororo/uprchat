@@ -1,6 +1,6 @@
-from uprchat.app.db_config import get_session
-from sqlmodel import Session, select, delete
-from uprchat.app.models import CrawlerData
+from uprchat.app.database.db_config import get_session
+from sqlmodel import Session, select
+from uprchat.harvester.schemas import CrawlerData
 
 
 class HarvesterRepository:
