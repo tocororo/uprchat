@@ -1,7 +1,5 @@
 
 import json
-from math import e
-from turtle import st
 from typing import Dict, List, Optional
 
 from uprchat.harvester.extractor import Extractor
@@ -70,8 +68,10 @@ class GraphBuilder:
                 node = await self.node_exists(current_url, recollection)
                 if node:
                     logger.info(f"Node for {current_url} already exists, skipping.")
-                    new_urls.extend(node["links"])
-                    stored_in = node["stored_in"]
+                    if node.get("links", None):
+                        new_urls.extend(node["links"])
+                    if node.get("links", None):
+                        stored_in = node["stored_in"]
                 else:
                     logger.info(f"Making request to {current_url}")
                     result = await self.extractor.process_url(current_url, self.entity_extraction)
@@ -122,14 +122,14 @@ class GraphBuilder:
             return True
         return False
 
-    async def node_exists(self, url: str, recollection: int) -> List | None:
+    async def node_exists(self, url: str, recollection: int) -> Dict | None:
         """
         Checks if a node with the given URL already exists in the Neo4j database.
         Args:
             url (str): URL to check.
             recollection (int): Current recollection number.
         Returns:
-            bool: True if the node exists, False otherwise.
+            Dict | None: Returns the node properties if it exists and matches the recollection, otherwise None.
         """
         r_service: RepositoryService = RepositoryService()
         query = f"""MATCH (n) WHERE n.id = \"{url}\" RETURN n LIMIT 1"""

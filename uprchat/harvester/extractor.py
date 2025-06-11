@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Dict, Optional
 
 from crawl4ai import (
@@ -36,6 +37,7 @@ class Extractor:
         base_url: str,
         api_key: str = None,
         proxy_config: Dict[str, str] | None = None,
+        delay: int = 60
     ):
         self.downloader = Downloader()
         self.parser = Parser()
@@ -47,6 +49,8 @@ class Extractor:
         self.model_name = model_name
         self.base_url = base_url
         self.api_key = api_key
+        self.delay = delay
+        self.last_ai_request = time.time() - delay
 
     async def process_url(self, url: str, entity_extraction: Optional[bool] = True) -> Dict | None:
         """
@@ -343,6 +347,11 @@ class Extractor:
         return entities
 
     def run_prompt_custom_llm(self, document, prompt):
+        if time.time() - self.last_ai_request < self.delay:
+            logger.warning(f"Rate limit exceeded, waiting for {self.dealy} seconds before next request.")
+            time.sleep(self.delay)
+        self.last_ai_request = time.time()
+            
         llm = ChatOpenAI(
             model=self.model_name, base_url=self.base_url, api_key=self.api_key
         )
