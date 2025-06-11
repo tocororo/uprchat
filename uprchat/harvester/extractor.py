@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, Optional
 
 from crawl4ai import (
     AsyncWebCrawler,
@@ -48,7 +48,7 @@ class Extractor:
         self.base_url = base_url
         self.api_key = api_key
 
-    async def process_url(self, url: str) -> Dict | None:
+    async def process_url(self, url: str, entity_extraction: Optional[bool] = True) -> Dict | None:
         """
         Processes a single URL
         Args:
@@ -63,10 +63,10 @@ class Extractor:
 
         filename = get_filename_from_url(url)
         content_type = self._get_content_type(response.get("content-type", ""))
-        return await self._handle_content_type(content_type, content, filename, url)
+        return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
 
     async def _handle_content_type(
-        self, content_type: str, content: bytes, filename: str, url: str
+        self, content_type: str, content: bytes, filename: str, url: str, entity_extraction: Optional[bool]
     ) -> Dict | None:
         data = None
         if content_type == "pdf":
@@ -108,11 +108,12 @@ class Extractor:
         else:
             logger.error(f"Unsupported content type: {content_type}")
         extracted_text = extract_text_to_document(content, content_type)
-        entities = self.extract_entities(extracted_text)
-        if entities:
-            data["entities"] = entities
-        else:
-            logger.warning(f"No entities extracted from {url}")
+        if entity_extraction:
+            entities = self.extract_entities(extracted_text)
+            if entities:
+                data["entities"] = entities
+            else:
+                logger.warning(f"No entities extracted from {url}")
         return data
 
     def _get_content_type(self, content_type: str) -> str:
@@ -356,6 +357,32 @@ class Extractor:
 
         response = llm.invoke(messages)
         return response.content
+    
+    def extract_document_bytes(self, file_path):
+        """
+        Extracts the content of a document as bytes from its file path.
+        
+        Args:
+            file_path (str): Path to the document file
+            
+        Returns:
+            bytes: File content as bytes
+            
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            PermissionError: If there are no permissions to read the file
+            IOError: If there's an input/output error
+        """
+        try:
+            with open(file_path, 'rb') as file:
+                content_bytes = file.read()
+            return content_bytes
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File '{file_path}' not found")
+        except PermissionError:
+            raise PermissionError(f"No permission to read file '{file_path}'")
+        except IOError as e:
+            raise IOError(f"Error reading file '{file_path}': {e}")
 
 
 class PageInformation(BaseModel):

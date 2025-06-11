@@ -95,7 +95,7 @@ def extract_text_to_document(file_bytes: bytes, file_type: str) -> Document:
             shape.text for slide in prs.slides for shape in slide.shapes if hasattr(shape, "text")
         )
 
-    elif file_type == "site":
+    elif file_type == "site" or file_type == "html":
         soup = BeautifulSoup(file_bytes, "html.parser")
         extracted_text = soup.get_text(separator="\n", strip=True)
 
