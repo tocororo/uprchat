@@ -18,9 +18,9 @@ from langchain.schema import HumanMessage, SystemMessage
 
 from uprchat.harvester.config import PDF_DIR, DOC_DIR, PPT_DIR, HTML_DIR
 from uprchat.harvester.downloader import Downloader
-from uprchat.harvester.parser import Parser, ParserAI
+from uprchat.harvester.parser import ParserAI
 
-from uprchat.harvester.utils import extract_text_to_document, get_filename_from_url
+from uprchat.harvester.utils import get_filename_from_url
 from uprchat.harvester.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -40,7 +40,6 @@ class Extractor:
         delay: int = 60
     ):
         self.downloader = Downloader()
-        self.parser = Parser()
         self.proxy_config = proxy_config
         if model_type != "openai":
             raise ValueError(f"Model type '{model_type}' not supported yet.")
@@ -103,21 +102,13 @@ class Extractor:
                 "summary": summary,
                 "stored_in": path.as_posix()
             }
-        elif content_type == "site":
+        elif content_type == "page":
             path = HTML_DIR / f"{filename}.html"
             self.downloader.save_file(content, path)
             data = await self.extraction_xpath_to_json(url)
-            if data:
-                data["stored_in"] = path.as_posix()
+            data["stored_in"] = path.as_posix()
         else:
             logger.error(f"Unsupported content type: {content_type}")
-        extracted_text = extract_text_to_document(content, content_type)
-        if entity_extraction:
-            entities = self.extract_entities(extracted_text)
-            if entities:
-                data["entities"] = entities
-            else:
-                logger.warning(f"No entities extracted from {url}")
         return data
 
     def _get_content_type(self, content_type: str) -> str:
@@ -141,8 +132,8 @@ class Extractor:
                 | "application/vnd.openxmlformats-officedocument.presentationml.slideshow"
             ):
                 return "pptx"
-            case "text/html" | "text/html; charset=utf-8" | "text/html; charset=UTF-8":
-                return "site"
+            case "text/html" | "text/html; charset=utf-8" | "text/html; charset=UTF-8" "text/plain; charset=utf-8" | "text/html; charset=UTF-8":
+                return "page"
             case _:
                 return content_type
 
@@ -177,7 +168,6 @@ class Extractor:
 
         config = CrawlerRunConfig(
             extraction_strategy=JsonXPathExtractionStrategy(schema, verbose=True),
-            exclude_all_images=True,
             page_timeout=10000000,
             cache_mode=CacheMode.BYPASS,
             js_code="window.scrollTo(0, document.body.scrollHeight);",
@@ -236,12 +226,12 @@ class Extractor:
             )
             if not data:
                 return None
-        extracted_text = extract_text_to_document(content, content_type)
-        entities = self.extract_entities(extracted_text)
-        if entities:
-            data["entities"] = entities
-        else:
-            logger.warning(f"No entities extracted from {url}")
+        # extracted_text = extract_text_to_document(content, content_type)
+        # entities = self.extract_entities(extracted_text)
+        # if entities:
+        #     data["entities"] = entities
+        # else:
+        #     logger.warning(f"No entities extracted from {url}")
         return data
 
     async def extraction_using_llm(self, url: str):
@@ -327,6 +317,8 @@ class Extractor:
             - Relationship fields may be either a single object or a list, depending on the number of related entities.  
             - Relationships must only reference entities that have already been extracted, regardless of which object invokes them.
             And remember only JSON in plain text
+            4. The output must be valid JSON, with no additional text or formatting.
+            5. If the text does not contain any entities, return an empty JSON object.
             **Schema:**
             ```json
             {schema}
@@ -348,7 +340,7 @@ class Extractor:
 
     def run_prompt_custom_llm(self, document, prompt):
         if time.time() - self.last_ai_request < self.delay:
-            logger.warning(f"Rate limit exceeded, waiting for {self.dealy} seconds before next request.")
+            logger.warning(f"Rate limit exceeded, waiting for {self.delay} seconds before next request.")
             time.sleep(self.delay)
         self.last_ai_request = time.time()
             

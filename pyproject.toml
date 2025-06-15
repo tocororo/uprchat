@@ -23,7 +23,7 @@ python-multipart = "^0.0.17"
 scikit-learn = "^1.5.2"
 sentence-transformers = "^3.3.1"
 langchain-ollama = "^0.2.2"
-crawl4ai = "^0.6.0"
+crawl4ai = "0.6.3"
 pymupdf = "^1.25.5"
 langchain = {extras = ["openai"], version = "^0.3.25"}
 langchain-community = "^0.3.23"

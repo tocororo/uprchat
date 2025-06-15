@@ -6,25 +6,20 @@
             "name": "Document",
             "mapping": {
                 "required": [
-                    "url",
+                    "id",
                     "summary",
                     "recollection"
                 ],
                 "_vectorize": {
                     "strategy": "Document Embeddings",
                     "values": [
-                        "url",
+                        "id",
                         "summary"
                     ],
-                    "phrase": "documento en :url es sobre :summary"
+                    "phrase": "documento en :id es sobre :summary"
                 },
                 "_class": "Document",
                 "properties": {
-                    "identifiers": {
-                        "__predicate": "idtype",
-                        "__object": "url",
-                        "idtype": "valuesOf:identifiers.url"
-                    },
                     "id": "id",
                     "summary": "summary",
                     "stored_in": "stored_in",
@@ -33,12 +28,6 @@
                         "__relation": "name",
                         "__predicate": "COLLECTED_FROM",
                         "__target": "Source"
-                    }
-                },
-                "valuesOf": {
-                    "identifiers.idtype": {
-                        "url": "http://sceiba.cu/identifier#url"
-                    
                     }
                 }
             }

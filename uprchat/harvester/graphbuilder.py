@@ -29,7 +29,8 @@ class GraphBuilder:
                  neo4j_db: str = None,
                  neo4j_uri: str = None,
                  proxy_config: Optional[Dict[str, str]] = None,
-                 entity_extraction: Optional[bool] = False
+                 entity_extraction: Optional[bool] = False,
+                 delay: Optional[int] = 1
                   ):
         
         self.extractor = Extractor(
@@ -37,7 +38,8 @@ class GraphBuilder:
             model_type,
             base_url,
             api_key,
-            proxy_config
+            proxy_config,
+            delay
         )
         self.visited = set()
         self.urls = []
@@ -66,12 +68,12 @@ class GraphBuilder:
                 if current_url in self.visited: 
                     continue
                 node = await self.node_exists(current_url, recollection)
+                old_node_recollection = node["recollection"] if node else False
                 if node:
                     logger.info(f"Node for {current_url} already exists, skipping.")
                     if node.get("links", None):
                         new_urls.extend(node["links"])
-                    if node.get("links", None):
-                        stored_in = node["stored_in"]
+                    stored_in = node["stored_in"]
                 else:
                     logger.info(f"Making request to {current_url}")
                     result = await self.extractor.process_url(current_url, self.entity_extraction)
@@ -92,18 +94,19 @@ class GraphBuilder:
                     self.add_nodes([node], result["type"])
                     stored_in = result["stored_in"]
                 self.visited.add(current_url)
-                if self.entity_extraction and not self.are_extracted_entities(current_url):
+                if self.entity_extraction and (not self.are_extracted_entities(current_url) or recollection != old_node_recollection):
                     logger.info(f"Extracting entities from {current_url}")
                     content = self.extractor.extract_document_bytes(stored_in)
                     type = stored_in.split(".")[-1]
                     document = extract_text_to_document(content, type)
+                    source_type = "page" if type == "html" else "document"
                     entities = self.extractor.extract_entities(document)
                     for entity_type in entities.keys():
                         for entity in entities[entity_type]:
-                            entity["page"] = node
+                            entity[source_type] = node
                     self.add_entities_nodes(entities)
                 elif self.entity_extraction:
-                    logger.info("Entities already extracted for this page.")
+                    logger.info("Entities already extracted.")
             self.urls.append(new_urls)
 
     def are_extracted_entities(self, source_page: str) -> bool:
@@ -115,7 +118,7 @@ class GraphBuilder:
             bool: True if entities are extracted, False otherwise.
         """
         r_service: RepositoryService = RepositoryService()
-        query = f"""MATCH (p:Page {"{ id: \""+source_page+"\"}"})-[:REFERENCED_IN]-(n)
+        query = f"""MATCH (p {"{ id: \""+source_page+"\"}"})-[:REFERENCED_IN]-(n)
                 RETURN n"""
         records, summary, keys = r_service.execute_external_query(query)
         if records != []:

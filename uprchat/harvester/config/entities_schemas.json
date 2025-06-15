@@ -5,28 +5,19 @@
     "occupation": "The primary role or position the person holds, such as their academic title (e.g., Professor, Researcher) or professional role (e.g., CEO, Engineer) (optional)",
     "organization": {
       "id": "The full, official name of the organization with which the person is affiliated (e.g., Stanford University, Google Inc.), serving as a link to the 'organization' entity (required if organization is included)"
-    },
-    "page": {
-      "id": "The URL of the webpage from which the information about the person was extracted, providing the source of the data (required if subject is included)"
     }
   },
   "organization": {
     "id": "The full, official name of the organization (e.g., Massachusetts Institute of Technology, United Nations), used as the unique identifier for this entity (required)",
     "about": "A brief summary that includes the organization’s mission, a short history, and its scope of work or influence, written in 1-2 sentences (required)",
     "abbreviation": "The commonly used acronym or short form of the organization’s name (e.g., MIT for Massachusetts Institute of Technology, UN for United Nations) (required)",
-    "website": "The official website URL of the organization (e.g., https://www.mit.edu), providing a direct link to its online presence (optional)",
-    "page": {
-      "id": "The URL of the webpage from which the information about the organization was extracted, indicating the data source (required if subject is included)"
-    }
+    "website": "The official website URL of the organization (e.g., https://www.mit.edu), providing a direct link to its online presence (optional)"
   },
   "subject": {
     "id": "The official name of the academic subject, discipline, or field of study (e.g., Computer Science, Quantum Physics), serving as the unique identifier for this entity (required)",
     "about": "A summary that outlines the scope of the subject, its core topics, and its relevance or importance in academia or industry, written in 1-2 sentences (required)",
     "subject": {
       "id": "The name of another subject that is closely related or interconnected (e.g., for 'Machine Learning', a related subject might be 'Artificial Intelligence') (required if subject is included)"
-    },
-    "page": {
-      "id": "The URL of the webpage from which the information about the subject was extracted, providing the source of the data (required if subject is included)"
     }
   },
   "concept": {
@@ -37,9 +28,6 @@
     },
     "concept": {
       "id": "The name of another concept that is directly related or often discussed in conjunction with this concept (e.g., 'Deep Learning' for 'Neural Networks') (required if concept is included)"
-    },
-    "page": {
-      "id": "The URL of the webpage from which the information about the concept was extracted, indicating the data source (optional)"
     }
   }
 }
