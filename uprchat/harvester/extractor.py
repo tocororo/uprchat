@@ -13,7 +13,6 @@ from crawl4ai import (
 )
 import openai
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 
@@ -47,7 +46,7 @@ class Extractor:
         self.proxy_config = proxy_config
         if model_type != "openai":
             raise ValueError(f"Model type '{model_type}' not supported yet.")
-        self.parser = ParserAI(model_name, model_type, base_url, api_key)
+        self.parser = ParserAI()
         self.provider = model_type
         self.model_name = model_name
         self.base_url = base_url
@@ -57,12 +56,6 @@ class Extractor:
 
     def update_apikey(self):
         self.api_key = apikey_iterator.change_apikey()
-        self.parser = ParserAI(
-            self.model_name, 
-            self.provider, 
-            self.base_url, 
-            self.api_key
-            )
     
     def _reset_apikey_fails_counter(self):
         apikey_iterator.reset_fails_counter()
@@ -83,8 +76,8 @@ class Extractor:
         filename = get_filename_from_url(url)
         content_type = self._get_content_type(response.get("content-type", ""))
         try:
-            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
             self._reset_apikey_fails_counter()
+            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
         except openai.RateLimitError as e:
             logger.error(f"Rate limit exceeded: {e}")
             self.update_apikey()
@@ -371,9 +364,7 @@ class Extractor:
             time.sleep(self.delay)
         self.last_ai_request = time.time()
             
-        llm = ChatOpenAI(
-            model=self.model_name, base_url=self.base_url, api_key=self.api_key
-        )
+        llm = apikey_iterator.get_llm()
 
         system_message = "You are an expert reader. Using only the following document content, answer the prompt precisely."
 

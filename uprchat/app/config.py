@@ -31,4 +31,6 @@ def get_settings():
 
 settings = get_settings()
 
-APIKeyIterator(api_keys=settings.model_api_key)
+APIKeyIterator(api_keys=settings.model_api_key, 
+               model_name=settings.mainmodel, 
+               base_url=settings.base_url)
