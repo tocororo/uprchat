@@ -1,5 +1,6 @@
 import json
-from typing import Dict
+import time
+from typing import Dict, Optional
 
 from crawl4ai import (
     AsyncWebCrawler,
@@ -10,17 +11,20 @@ from crawl4ai import (
     LLMConfig,
     LLMExtractionStrategy,
 )
+import openai
 from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 
 from uprchat.harvester.config import PDF_DIR, DOC_DIR, PPT_DIR, HTML_DIR
 from uprchat.harvester.downloader import Downloader
-from uprchat.harvester.parser import Parser, ParserAI
+from uprchat.harvester.parser import ParserAI
 
-from uprchat.harvester.utils import extract_text_to_document, get_filename_from_url
+from uprchat.harvester.utils import get_filename_from_url
 from uprchat.harvester.logger import setup_logger
+from uprchat.utils.apikey_iterator import APIKeyIterator
+
+apikey_iterator = APIKeyIterator()
 
 logger = setup_logger(__name__)
 
@@ -36,19 +40,27 @@ class Extractor:
         base_url: str,
         api_key: str = None,
         proxy_config: Dict[str, str] | None = None,
+        delay: int = 60
     ):
         self.downloader = Downloader()
-        self.parser = Parser()
         self.proxy_config = proxy_config
         if model_type != "openai":
             raise ValueError(f"Model type '{model_type}' not supported yet.")
-        self.parser = ParserAI(model_name, model_type, base_url, api_key)
+        self.parser = ParserAI()
         self.provider = model_type
         self.model_name = model_name
         self.base_url = base_url
         self.api_key = api_key
+        self.delay = delay
+        self.last_ai_request = time.time() - delay
 
-    async def process_url(self, url: str) -> Dict | None:
+    def update_apikey(self):
+        self.api_key = apikey_iterator.change_apikey()
+    
+    def _reset_apikey_fails_counter(self):
+        apikey_iterator.reset_fails_counter()
+
+    async def process_url(self, url: str, entity_extraction: Optional[bool] = True) -> Dict | None:
         """
         Processes a single URL
         Args:
@@ -63,10 +75,16 @@ class Extractor:
 
         filename = get_filename_from_url(url)
         content_type = self._get_content_type(response.get("content-type", ""))
-        return await self._handle_content_type(content_type, content, filename, url)
+        try:
+            self._reset_apikey_fails_counter()
+            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
+        except openai.RateLimitError as e:
+            logger.error(f"Rate limit exceeded: {e}")
+            self.update_apikey()
+            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
 
     async def _handle_content_type(
-        self, content_type: str, content: bytes, filename: str, url: str
+        self, content_type: str, content: bytes, filename: str, url: str, entity_extraction: Optional[bool]
     ) -> Dict | None:
         data = None
         if content_type == "pdf":
@@ -99,27 +117,20 @@ class Extractor:
                 "summary": summary,
                 "stored_in": path.as_posix()
             }
-        elif content_type == "site":
+        elif content_type == "page":
             path = HTML_DIR / f"{filename}.html"
             self.downloader.save_file(content, path)
             data = await self.extraction_xpath_to_json(url)
-            if data:
-                data["stored_in"] = path.as_posix()
+            data["stored_in"] = path.as_posix()
         else:
             logger.error(f"Unsupported content type: {content_type}")
-        extracted_text = extract_text_to_document(content, content_type)
-        entities = self.extract_entities(extracted_text)
-        if entities:
-            data["entities"] = entities
-        else:
-            logger.warning(f"No entities extracted from {url}")
         return data
 
     def _get_content_type(self, content_type: str) -> str:
         """
         Determines the content type based on the file extension in the URL.
         Args:
-            url (str): The URL to analyze.
+            content_type (str): content type of request
         Returns:
             str: Content type ('pdf', 'docx', 'pptx', 'site' or 'Unknown').
         """
@@ -136,8 +147,8 @@ class Extractor:
                 | "application/vnd.openxmlformats-officedocument.presentationml.slideshow"
             ):
                 return "pptx"
-            case "text/html" | "text/html; charset=utf-8" | "text/html; charset=UTF-8":
-                return "site"
+            case "text/html" | "text/html; charset=utf-8" | "text/html; charset=UTF-8" "text/plain; charset=utf-8" | "text/html; charset=UTF-8":
+                return "page"
             case _:
                 return content_type
 
@@ -172,7 +183,6 @@ class Extractor:
 
         config = CrawlerRunConfig(
             extraction_strategy=JsonXPathExtractionStrategy(schema, verbose=True),
-            exclude_all_images=True,
             page_timeout=10000000,
             cache_mode=CacheMode.BYPASS,
             js_code="window.scrollTo(0, document.body.scrollHeight);",
@@ -231,12 +241,12 @@ class Extractor:
             )
             if not data:
                 return None
-        extracted_text = extract_text_to_document(content, content_type)
-        entities = self.extract_entities(extracted_text)
-        if entities:
-            data["entities"] = entities
-        else:
-            logger.warning(f"No entities extracted from {url}")
+        # extracted_text = extract_text_to_document(content, content_type)
+        # entities = self.extract_entities(extracted_text)
+        # if entities:
+        #     data["entities"] = entities
+        # else:
+        #     logger.warning(f"No entities extracted from {url}")
         return data
 
     async def extraction_using_llm(self, url: str):
@@ -322,13 +332,16 @@ class Extractor:
             - Relationship fields may be either a single object or a list, depending on the number of related entities.  
             - Relationships must only reference entities that have already been extracted, regardless of which object invokes them.
             And remember only JSON in plain text
+            4. The output must be valid JSON, with no additional text or formatting.
+            5. If the text does not contain any entities, return an empty JSON object.
             **Schema:**
-            ```json
             {schema}
-            ```
         """
-        dict_str = self.run_prompt_custom_llm(document, prompt)
         try:
+            dict_str = self.run_prompt_custom_llm(document, prompt)
+            if dict_str == "{}":
+                logger.warning("No entities extracted from the document.")
+                return {}
             entities = json.loads(dict_str)
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {e}")
@@ -339,12 +352,19 @@ class Extractor:
                 logger.error(f"Error decoding JSON: {error}")
                 logger.info("Trying to extract entities again")
                 entities = self.extract_entities(document)
+        except openai.RateLimitError as e:
+            logger.error(f"Rate limit exceeded: {e}")
+            self.update_apikey()
+            entities = self.extract_entities(document)
         return entities
 
     def run_prompt_custom_llm(self, document, prompt):
-        llm = ChatOpenAI(
-            model=self.model_name, base_url=self.base_url, api_key=self.api_key
-        )
+        if time.time() - self.last_ai_request < self.delay:
+            logger.warning(f"Rate limit exceeded, waiting for {self.delay} seconds before next request.")
+            time.sleep(self.delay)
+        self.last_ai_request = time.time()
+            
+        llm = apikey_iterator.get_llm()
 
         system_message = "You are an expert reader. Using only the following document content, answer the prompt precisely."
 
@@ -356,6 +376,32 @@ class Extractor:
 
         response = llm.invoke(messages)
         return response.content
+    
+    def extract_document_bytes(self, file_path):
+        """
+        Extracts the content of a document as bytes from its file path.
+        
+        Args:
+            file_path (str): Path to the document file
+            
+        Returns:
+            bytes: File content as bytes
+            
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            PermissionError: If there are no permissions to read the file
+            IOError: If there's an input/output error
+        """
+        try:
+            with open(file_path, 'rb') as file:
+                content_bytes = file.read()
+            return content_bytes
+        except FileNotFoundError:
+            raise FileNotFoundError(f"File '{file_path}' not found")
+        except PermissionError:
+            raise PermissionError(f"No permission to read file '{file_path}'")
+        except IOError as e:
+            raise IOError(f"Error reading file '{file_path}': {e}")
 
 
 class PageInformation(BaseModel):

@@ -5,14 +5,20 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, ToolMessage, SystemMessage, HumanMessage, AIMessage
 from langgraph.prebuilt import ToolNode
 from langchain_openai import ChatOpenAI
+import openai
 
 from uprchat.agents.tools.graphrag_tools import get_context_from_graph
 from uprchat.app.config import get_settings
+from uprchat.harvester.logger import setup_logger
+from uprchat.utils.apikey_iterator import APIKeyIterator
+
+logger = setup_logger("agent")
 
 settings = get_settings()
+apikey_iterator = APIKeyIterator()
 
 MAINMODEL = settings.mainmodel
-MODEL_API_KEY = settings.model_api_key
+MODEL_API_KEY = apikey_iterator.get_current_apikey()
 BASE_URL = settings.base_url
 
 class AgentState(TypedDict):
@@ -36,10 +42,20 @@ def generate_response(state: AgentState) -> AgentState:
     Generates a response based on the context retrieved from the graph database.
     """
     messages = state["messages"]
-
-    response = llm.invoke([
-        SystemMessage(content="You are a helpful assistant that provides information based on the context provided.")
-    ] + messages)
+    try:
+        response = llm.invoke([
+            SystemMessage(content="You are a helpful assistant that provides information based on the context provided.")
+        ] + messages)
+    except openai.RateLimitError as e:
+        logger.error(e)
+        new_api_key = apikey_iterator.change_apikey()
+        global llm
+        llm = ChatOpenAI(
+        model=MAINMODEL,
+        api_key=new_api_key,
+        base_url=BASE_URL
+        )
+        return generate_response(state)
     
     messages.append(AIMessage(content=response.content))
     

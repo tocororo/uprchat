@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from uprchat.harvester.extractor import Extractor
 from uprchat.harvester.logger import setup_logger
 # from hd2neo4j.services import RepositoryService, MapperService
-from uprchat.harvester.utils import clean_text_for_neo4j, extract_source_information
+from uprchat.harvester.utils import clean_text_for_neo4j, extract_source_information, extract_text_to_document
 from uprchat.mapper.services import RepositoryService, MapperService
 
 logger = setup_logger(__name__)
@@ -29,6 +29,8 @@ class GraphBuilder:
                  neo4j_db: str = None,
                  neo4j_uri: str = None,
                  proxy_config: Optional[Dict[str, str]] = None,
+                 entity_extraction: Optional[bool] = False,
+                 delay: Optional[int] = 1
                   ):
         
         self.extractor = Extractor(
@@ -36,7 +38,8 @@ class GraphBuilder:
             model_type,
             base_url,
             api_key,
-            proxy_config
+            proxy_config,
+            delay
         )
         self.visited = set()
         self.urls = []
@@ -46,6 +49,7 @@ class GraphBuilder:
             "neo4j_db": neo4j_db,
             "neo4j_uri": neo4j_uri
         }
+        self.entity_extraction = entity_extraction
 
     async def _crawl(
                      self, 
@@ -63,51 +67,79 @@ class GraphBuilder:
             for current_url in urls_list:
                 if current_url in self.visited: 
                     continue
-                links = await self.node_exists(current_url, recollection)
-                if links:
+                node = await self.node_exists(current_url, recollection)
+                old_node_recollection = node["recollection"] if node else False
+                if node:
                     logger.info(f"Node for {current_url} already exists, skipping.")
-                    self.urls.append(links)
-                    continue
-                logger.info(f"Making request to {current_url}")
-                result = await self.extractor.process_url(current_url)
+                    if node.get("links", None):
+                        new_urls.extend(node["links"])
+                    stored_in = node["stored_in"]
+                else:
+                    logger.info(f"Making request to {current_url}")
+                    result = await self.extractor.process_url(current_url, self.entity_extraction)
+                    if not result:
+                        continue
+                    result["recollection"] = recollection
+                    links = result.get("links", None)
+                    if links:
+                        internal_links = [
+                            item["href"]
+                            for item in links
+                            if item["href"] not in self.visited
+                        ]
+                        if internal_links:
+                            result["links"] = internal_links
+                            new_urls.extend(internal_links)
+                    node = self._get_data_from_result(result)
+                    self.add_nodes([node], result["type"])
+                    stored_in = result["stored_in"]
                 self.visited.add(current_url)
-                if not result:
-                    continue
-                result["recollection"] = recollection
-                links = result.get("links", None)
-                if links:
-                    internal_links = [
-                        item["href"]
-                        for item in links
-                        if item["href"] not in self.visited
-                    ]
-                    if internal_links:
-                        result["links"] = internal_links
-                        new_urls.extend(internal_links)
-                element = self._get_data_from_result(result)
-                self.add_nodes([element], result["type"])
-                entities = result.get("entities", {})
-                for entity_type in entities.keys():
-                    for entity in entities[entity_type]:
-                        entity["page"] = element
-                self.add_entities_nodes(entities)
+                if self.entity_extraction and (not self.are_extracted_entities(current_url) or recollection != old_node_recollection):
+                    logger.info(f"Extracting entities from {current_url}")
+                    content = self.extractor.extract_document_bytes(stored_in)
+                    type = stored_in.split(".")[-1]
+                    document = extract_text_to_document(content, type)
+                    source_type = "page" if type == "html" else "document"
+                    entities = self.extractor.extract_entities(document)
+                    for entity_type in entities.keys():
+                        for entity in entities[entity_type]:
+                            entity[source_type] = node
+                    self.add_entities_nodes(entities)
+                elif self.entity_extraction:
+                    logger.info("Entities already extracted.")
             self.urls.append(new_urls)
 
-    async def node_exists(self, url: str, recollection: int) -> List | None:
+    def are_extracted_entities(self, source_page: str) -> bool:
+        """
+        Checks if the extractor has extracted entities.
+        Args:
+            source_page (str): URL of the source page to check.
+        Returns:
+            bool: True if entities are extracted, False otherwise.
+        """
+        r_service: RepositoryService = RepositoryService()
+        query = f"""MATCH (p {"{ id: \""+source_page+"\"}"})-[:REFERENCED_IN]-(n)
+                RETURN n"""
+        records, summary, keys = r_service.execute_external_query(query)
+        if records != []:
+            return True
+        return False
+
+    async def node_exists(self, url: str, recollection: int) -> Dict | None:
         """
         Checks if a node with the given URL already exists in the Neo4j database.
         Args:
             url (str): URL to check.
             recollection (int): Current recollection number.
         Returns:
-            bool: True if the node exists, False otherwise.
+            Dict | None: Returns the node properties if it exists and matches the recollection, otherwise None.
         """
         r_service: RepositoryService = RepositoryService()
         query = f"""MATCH (n) WHERE n.id = \"{url}\" RETURN n LIMIT 1"""
         records, summary, keys = r_service.execute_external_query(query)
         if records != []:
             if str(records[0]["n"]["recollection"]) == recollection:
-                return records[0]["n"]["links"]
+                return records[0]["n"]._properties
             # update_query = f"MATCH (n) WHERE n.id = {url} SET n.recollection = {recollection} RETURN n"
             # r_service.execute_external_query(update_query)
         return None

@@ -13,8 +13,11 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate
 
 from uprchat.harvester.logger import setup_logger
+from uprchat.utils import apikey_iterator
 
 logger = setup_logger(__name__)
+
+apikey_iterator = apikey_iterator.APIKeyIterator()
 
 class Parser:
     """
@@ -65,7 +68,6 @@ class Parser:
         try:
             with open(path, "rb") as f:
                 presentation = Presentation(f)
-                print("dsadsad")
                 summary = " ".join(
                     [f"{shape.text}" 
                      for slide in list(presentation.slides)[:100] 
@@ -73,7 +75,6 @@ class Parser:
                      if shape.has_text_frame
                      ]
                     )
-                print("dsadsad")
                 return summary
         except Exception as e:
             logger.error(f"Error parsing PPTX {path}: {e}")
@@ -85,17 +86,20 @@ class ParserAI:
     """
     def __init__(
         self,
-        model_name: str,
-        model_type: str,
-        base_url: str,
+        model_name: str = None,
+        model_type: str = "openai",
+        base_url: str = None,
         api_key: str = None
     ):
         if model_type != "openai":
             raise ValueError(f"Model type '{model_type}' not supported yet.")
 
-        self.agent = ChatOpenAI(
-            model_name=model_name, base_url=base_url, api_key=api_key
-        )
+        if not model_name:
+            self.agent = apikey_iterator.get_llm()
+        else:
+            self.agent = ChatOpenAI(
+                model_name=model_name, base_url=base_url, api_key=api_key
+            )
 
         prompt = """
                 Elabora un resumen en español del siguiente texto. Debe ser breve (alrededor de un

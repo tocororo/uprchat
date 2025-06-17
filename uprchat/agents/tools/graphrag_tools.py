@@ -4,12 +4,19 @@ from neo4j import EagerResult, GraphDatabase
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import ToolMessage, SystemMessage, HumanMessage
 from langchain_core.tools import tool
+import openai
 from sentence_transformers import SentenceTransformer
 
 from uprchat.app.config import get_settings
+from uprchat.harvester.logger import setup_logger
 from uprchat.mapper.services import RepositoryService
+from uprchat.utils.apikey_iterator import APIKeyIterator
 
 settings = get_settings()
+
+logger = setup_logger("agent_tools")
+
+apikey_iterator = APIKeyIterator()
 
 @tool
 def get_context_from_graph(query: str) -> str:
@@ -70,9 +77,19 @@ def generate_cypher_query(query: str) -> str:
         - The query must be valid Cypher syntax.
         - The query always returns nodes and relationships, not just properties.
     """
-    response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=query)])
-    print(f"Generated Cypher Query: {response.content}")
-    return response.content
+    try:
+        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=query)])
+        print(f"Generated Cypher Query: {response.content}")
+        return response.content
+    except openai.RateLimitError as e:
+        logger.error(e)
+        new_api_key = apikey_iterator.change_apikey()
+        llm = ChatOpenAI(
+        model=settings.mainmodel,
+        api_key=new_api_key,
+        base_url=settings.base_url
+        )
+        return generate_cypher_query(query)
 
 def get_nodes_schema() -> str:
     """

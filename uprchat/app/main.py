@@ -1,4 +1,4 @@
-
+from uprchat.app.config import get_settings
 from uprchat.app.routes import crawler
 import uvicorn
 import logging

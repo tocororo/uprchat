@@ -1,4 +1,4 @@
-from datetime import datetime
+
 import re
 from typing import Dict
 from urllib.parse import urlparse
@@ -81,9 +81,12 @@ def extract_text_to_document(file_bytes: bytes, file_type: str) -> Document:
     if file_type == "pdf":
         pdf_stream = BytesIO(file_bytes)
         pdf = fitz.open(stream=pdf_stream, filetype="pdf")
-        extracted_text = "\n".join(
-            page.extract_text() or "" for page in pdf.pages
-        )
+        pages_text = []
+        for page_num in range(pdf.page_count):
+            page = pdf[page_num]
+            pages_text.append(page.get_text())
+        extracted_text = "\n".join(pages_text)
+        pdf.close()
 
     elif file_type == "docx":
         doc = DocxDocument(BytesIO(file_bytes))
@@ -95,13 +98,13 @@ def extract_text_to_document(file_bytes: bytes, file_type: str) -> Document:
             shape.text for slide in prs.slides for shape in slide.shapes if hasattr(shape, "text")
         )
 
-    elif file_type == "site":
+    elif file_type == "site" or file_type == "html":
         soup = BeautifulSoup(file_bytes, "html.parser")
         extracted_text = soup.get_text(separator="\n", strip=True)
 
     else:
-        raise ValueError(f"Unsupported file type: {file_type}")
-
+        print(f"Unsupported file type: {file_type}")
+        
     return Document(
         page_content=extracted_text,
         metadata={"source_type": file_type}
