@@ -1,7 +1,7 @@
 from threading import Lock
 from typing import List, Optional
 
-class APIKeyRotator:
+class APIKeyIterator:
     _instance = None
     _lock = Lock()
 

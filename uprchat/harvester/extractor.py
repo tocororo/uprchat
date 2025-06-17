@@ -11,6 +11,7 @@ from crawl4ai import (
     LLMConfig,
     LLMExtractionStrategy,
 )
+import openai
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
@@ -22,6 +23,9 @@ from uprchat.harvester.parser import ParserAI
 
 from uprchat.harvester.utils import get_filename_from_url
 from uprchat.harvester.logger import setup_logger
+from uprchat.utils.apikey_iterator import APIKeyIterator
+
+apikey_iterator = APIKeyIterator()
 
 logger = setup_logger(__name__)
 
@@ -51,6 +55,18 @@ class Extractor:
         self.delay = delay
         self.last_ai_request = time.time() - delay
 
+    def update_apikey(self):
+        self.api_key = apikey_iterator.change_apikey()
+        self.parser = ParserAI(
+            self.model_name, 
+            self.provider, 
+            self.base_url, 
+            self.api_key
+            )
+    
+    def _reset_apikey_fails_counter(self):
+        apikey_iterator.reset_fails_counter()
+
     async def process_url(self, url: str, entity_extraction: Optional[bool] = True) -> Dict | None:
         """
         Processes a single URL
@@ -66,7 +82,13 @@ class Extractor:
 
         filename = get_filename_from_url(url)
         content_type = self._get_content_type(response.get("content-type", ""))
-        return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
+        try:
+            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
+            self._reset_apikey_fails_counter()
+        except openai.RateLimitError as e:
+            logger.error(f"Rate limit exceeded: {e}")
+            self.update_apikey()
+            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
 
     async def _handle_content_type(
         self, content_type: str, content: bytes, filename: str, url: str, entity_extraction: Optional[bool]
@@ -115,7 +137,7 @@ class Extractor:
         """
         Determines the content type based on the file extension in the URL.
         Args:
-            url (str): The URL to analyze.
+            content_type (str): content type of request
         Returns:
             str: Content type ('pdf', 'docx', 'pptx', 'site' or 'Unknown').
         """
@@ -320,12 +342,13 @@ class Extractor:
             4. The output must be valid JSON, with no additional text or formatting.
             5. If the text does not contain any entities, return an empty JSON object.
             **Schema:**
-            ```json
             {schema}
-            ```
         """
-        dict_str = self.run_prompt_custom_llm(document, prompt)
         try:
+            dict_str = self.run_prompt_custom_llm(document, prompt)
+            if dict_str == "{}":
+                logger.warning("No entities extracted from the document.")
+                return {}
             entities = json.loads(dict_str)
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {e}")
@@ -336,6 +359,10 @@ class Extractor:
                 logger.error(f"Error decoding JSON: {error}")
                 logger.info("Trying to extract entities again")
                 entities = self.extract_entities(document)
+        except openai.RateLimitError as e:
+            logger.error(f"Rate limit exceeded: {e}")
+            self.update_apikey()
+            entities = self.extract_entities(document)
         return entities
 
     def run_prompt_custom_llm(self, document, prompt):

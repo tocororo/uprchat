@@ -104,7 +104,7 @@ def extract_text_to_document(file_bytes: bytes, file_type: str) -> Document:
 
     else:
         print(f"Unsupported file type: {file_type}")
-    print(extracted_text)
+        
     return Document(
         page_content=extracted_text,
         metadata={"source_type": file_type}
