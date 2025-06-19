@@ -3,8 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm,OAuth2PasswordBearer
 from typing import Annotated
 from sqlmodel import Session
 from uprchat.app.database.db_config import get_session
-from uprchat.app.users.schemas import UserCreate
-from uprchat.app.users.services import register_user,login,get_user_data
+from uprchat.app.users.schemas import UserCreate,UserDB,UserUpdate
+from uprchat.app.users.services import register_user,login,get_user_data,update_user_data
 from uprchat.app.users.utils import generate_token,get_current_user_uuid
 
 
@@ -29,6 +29,14 @@ async def login_user(session: Annotated[Session, Depends(get_session)],form: Ann
         "access_token":access_token,
         "token_type":"bearer"
     }
+
+@rt.put('/',status_code=status.HTTP_200_OK)
+async def update_user(session: Annotated[Session, Depends(get_session)],user_data: UserUpdate):
+    return await update_user_data(user_data=user_data,session=session)
+
+@rt.get('/',status_code=status.HTTP_200_OK)
+async def get_data(session: Annotated[Session, Depends(get_session)],username: str):
+    return await get_user_data(username=username,session=session)
 
 @rt.get('/me')
 async def me(token: Annotated[str,Depends(oauth2)]):

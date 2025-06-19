@@ -14,8 +14,16 @@ SECRET = get_settings().secret
 ALGORITHM = get_settings().algorithm
 
 async def get_user_data(username: str, session: AsyncSession):
-    result = await session.exec(select(User).where(User.username == username))
-    return result.first()
+    try:
+        result = await session.exec(select(User).where(User.username == username))
+        return result.first()
+    except:
+        raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found",
+    )
+
+
 
 def generate_token(uuid: UUID):
     data = {

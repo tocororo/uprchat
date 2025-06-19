@@ -13,6 +13,7 @@ class User(SQLModel, table=True):
         sa_type=PG_UUID(as_uuid=True)  
     )
     username: str = Field(unique=True, index=True)
+    data: dict = Field(default={}, sa_type=JSON) 
 
 
 class Chat(SQLModel, table=True):

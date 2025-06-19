@@ -1,7 +1,5 @@
 
 import json
-from math import e
-from turtle import st
 from typing import Dict, List, Optional
 
 from uprchat.harvester.extractor import Extractor
