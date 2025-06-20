@@ -55,12 +55,21 @@ class Extractor:
         self.last_ai_request = time.time() - delay
 
     def update_apikey(self):
-        self.api_key = apikey_iterator.change_apikey()
+        current_apikey = self.api_key = apikey_iterator.change_apikey()
+        self.parser = ParserAI(
+            model_name=self.model_name,
+            model_type=self.provider,
+            base_url=self.base_url,
+            api_key=current_apikey
+        )
     
     def _reset_apikey_fails_counter(self):
         apikey_iterator.reset_fails_counter()
 
-    async def process_url(self, url: str, entity_extraction: Optional[bool] = True) -> Dict | None:
+    async def process_url(self, 
+                          url: str,
+                          summary_creation: Optional[bool] = True
+                          ) -> Dict | None:
         """
         Processes a single URL
         Args:
@@ -76,55 +85,75 @@ class Extractor:
         filename = get_filename_from_url(url)
         content_type = self._get_content_type(response.get("content-type", ""))
         try:
-            self._reset_apikey_fails_counter()
-            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
+            return await self._handle_content_type(content_type, content, filename, url)
         except openai.RateLimitError as e:
             logger.error(f"Rate limit exceeded: {e}")
             self.update_apikey()
-            return await self._handle_content_type(content_type, content, filename, url, entity_extraction)
+            return await self._handle_content_type(content_type, content, filename, url, summary_creation)
 
     async def _handle_content_type(
-        self, content_type: str, content: bytes, filename: str, url: str, entity_extraction: Optional[bool]
+        self, 
+        content_type: str, 
+        content: bytes, 
+        filename: str, 
+        url: str
     ) -> Dict | None:
         data = None
         if content_type == "pdf":
             path = PDF_DIR / f"{filename}.pdf"
             self.downloader.save_file(content, path)
-            summary = self.parser.parse_pdf(path)
             data = {
-                "type": "document",
-                "url": url,
-                "summary": summary,
+                "id": url,
                 "stored_in": path.as_posix()
             }
         elif content_type == "docx":
             path = DOC_DIR / f"{filename}.docx"
             self.downloader.save_file(content, path)
-            summary = self.parser.parse_docx(path)
             data = {
-                "type": "document",
-                "url": url,
-                "summary": summary,
+                "id": url,
                 "stored_in": path.as_posix()
             }
         elif content_type == "pptx":
             path = PPT_DIR / f"{filename}.pptx"
             self.downloader.save_file(content, path)
-            summary = self.parser.parse_pptx(path)
             data = {
-                "type": "document",
-                "url": url,
-                "summary": summary,
+                "id": url,
                 "stored_in": path.as_posix()
             }
         elif content_type == "page":
             path = HTML_DIR / f"{filename}.html"
             self.downloader.save_file(content, path)
             data = await self.extraction_xpath_to_json(url)
+            if not data:
+                return None
             data["stored_in"] = path.as_posix()
         else:
             logger.error(f"Unsupported content type: {content_type}")
         return data
+    
+    def extract_summary(
+        self, 
+        path: str,
+        content_type: str
+    ) -> str:
+        try:
+            if content_type == "pdf":
+                summary = self.parser.parse_pdf(path)
+            elif content_type == "docx":
+                summary = self.parser.parse_docx(path)
+            elif content_type == "pptx":
+                summary = self.parser.parse_pptx(path)
+            elif content_type == "html":
+                summary = self.parser.parse_html(path)
+            else:
+                logger.error(f"Unsupported content type: {content_type}")
+                summary = "No content available"
+        except openai.RateLimitError as e:
+            logger.error(f"Rate limit exceeded: {e}")
+            logger.info("Trying to use nother apikey")
+            self.update_apikey()
+            summary = self.extract_summary(path, content_type) 
+        return summary
 
     def _get_content_type(self, content_type: str) -> str:
         """
@@ -198,10 +227,9 @@ class Extractor:
             content = json.loads(result.extracted_content)
             info = content[0] if content else {}
             data = {
-                "type": "page",
-                "url": url,
+                "id": url,
                 "title": info.get("title", ""),
-                "summary": info.get("body", ""),
+                "body": info.get("body", ""),
                 "links": result.links.get("internal", []),
                 "stored_in": ""
             }
@@ -354,15 +382,20 @@ class Extractor:
                 entities = self.extract_entities(document)
         except openai.RateLimitError as e:
             logger.error(f"Rate limit exceeded: {e}")
+            logger.info("Trying to use nother apikey")
             self.update_apikey()
             entities = self.extract_entities(document)
         return entities
 
-    def run_prompt_custom_llm(self, document, prompt):
+    def __waint_between_rquests(self):
         if time.time() - self.last_ai_request < self.delay:
             logger.warning(f"Rate limit exceeded, waiting for {self.delay} seconds before next request.")
             time.sleep(self.delay)
         self.last_ai_request = time.time()
+
+    def run_prompt_custom_llm(self, document, prompt):
+        
+        self.__waint_between_rquests()
             
         llm = apikey_iterator.get_llm()
 

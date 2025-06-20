@@ -30,9 +30,11 @@ class APIKeyIterator:
         self.index = 0
         self.api_keys_expired = 0
         self._lock = Lock()
+        self.model_name = model_name
+        self.base_url = base_url
         self.llm = ChatOpenAI(
-            model_name=model_name,
-            base_url=base_url,
+            model_name=self.model_name,
+            base_url=self.base_url,
             api_key=self.__api_keys[self.index]
         )
 
@@ -46,9 +48,10 @@ class APIKeyIterator:
             self.index = 0
         if self.api_keys_expired >= len(self.__api_keys):
             raise NoAvailableAPIKeysError("All API keys have been used.")
+        
         self.llm = ChatOpenAI(
-            model_name=self.llm.model_name,
-            base_url=self.llm.base_url,
+            model_name=self.model_name,
+            base_url=self.base_url,
             api_key=self.__api_keys[self.index]
         )
         return self.__api_keys[self.index]

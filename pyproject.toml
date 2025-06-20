@@ -42,3 +42,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "uprchat.app.main:start"
+simple-recollection = "uprchat.harvester.start:simple_recollection"
+entity-extraction-recollection = "uprchat.harvester.start:recollection_with_entity_extraction"
+summary-creation-recollection = "uprchat.harvester.start:recollection_with_summary_creation"
+complete-recollection = "uprchat.harvester.start:complete_recollection"

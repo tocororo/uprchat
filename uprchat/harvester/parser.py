@@ -1,11 +1,13 @@
 from pathlib import Path
 from typing import List
+from bs4 import BeautifulSoup
 import fitz
 from langchain_community.document_loaders import (
     PyMuPDFLoader,
 )
 from langchain_core.documents import Document as LangchainDocument
 from docx import Document
+import openai
 from pptx import Presentation
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -125,6 +127,8 @@ class ParserAI:
         try:
             docs = PyMuPDFLoader(path).load()
             return self._summarize(docs)
+        except openai.RateLimitError as e:
+            raise e
         except Exception as e:
             logger.error(f"Error parsing PDF {path}: {e}")
             return ""
@@ -138,6 +142,8 @@ class ParserAI:
                 texts.append(text)
             docs = [LangchainDocument(page_content=text) for text in texts]
             return self._summarize(docs)
+        except openai.RateLimitError as e:
+            raise e
         except Exception as e:
             logger.error(f"Error parsing DOCX {path}: {e}")
             return ""
@@ -154,6 +160,31 @@ class ParserAI:
 
             docs = [LangchainDocument(page_content=text) for text in texts]
             return self._summarize(docs)
+        except openai.RateLimitError as e:
+            raise e
         except Exception as e:
             logger.error(f"Error parsing PPTX {path}: {e}")
+            return ""
+        
+
+    def parse_html(self, path: Path) -> str:
+        """
+        Parse and summarize the textual content of an HTML document.
+        """
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                html_content = file.read()
+
+            soup = BeautifulSoup(html_content, "html.parser")
+
+            for element in soup(["script", "style", "head", "meta", "noscript"]):
+                element.decompose()
+
+            text = soup.get_text(separator=" ", strip=True)
+            doc = LangchainDocument(page_content=text)
+            return self._summarize([doc])
+        except openai.RateLimitError as e:
+            raise e
+        except Exception as e:
+            logger.error(f"Error parsing HTML {path}: {e}")
             return ""
