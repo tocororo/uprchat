@@ -14,9 +14,9 @@
                     "strategy": "Document Embeddings",
                     "values": [
                         "title",
-                        "summary"
+                        "body"
                     ],
-                    "phrase": "la pagina :title tiene contenido acerca de :summary"
+                    "phrase": "la pagina :title tiene contenido acerca de :body"
                 },
                 "_class": "Page",
                 "properties": {
@@ -27,6 +27,7 @@
                     "id": "id",
                     "title": "title",
                     "summary": "summary",
+                    "body": "body",
                     "stored_in": "stored_in",
                     "recollection": "recollection",
                     "links": "links",
