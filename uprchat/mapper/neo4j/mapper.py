@@ -69,7 +69,7 @@ class Mapper:
                                 vector_config.get("strategy")
                             )
                             vector = vector_manager.get_vector(vector_phrase)
-                            node.properties.update({f"vectors": vector})
+                            node.properties.update({"vectors": vector.tolist()})
                         # ----- Vectors handling
 
                         if node.relations:

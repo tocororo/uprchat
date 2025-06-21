@@ -1,13 +1,12 @@
 
-from typing import List, Optional, TypedDict, Sequence, Annotated
-from langgraph.graph import StateGraph, START, END
+from typing import  TypedDict, Sequence, Annotated
+from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, ToolMessage, SystemMessage, HumanMessage, AIMessage
 from langgraph.prebuilt import ToolNode
-from langchain_openai import ChatOpenAI
 import openai
 
-from uprchat.agents.tools.graphrag_tools import get_context_from_graph
+from uprchat.agents.tools.graphrag_tools import  get_context_from_graph
 from uprchat.app.config import get_settings
 from uprchat.harvester.logger import setup_logger
 from uprchat.utils.apikey_iterator import APIKeyIterator
@@ -27,11 +26,7 @@ class AgentState(TypedDict):
     user_type: str
 
 
-llm = ChatOpenAI(
-    model=MAINMODEL,
-    api_key=MODEL_API_KEY,
-    base_url=BASE_URL
-)
+llm = apikey_iterator.get_llm()
 
 tools = [get_context_from_graph]
 
@@ -43,18 +38,14 @@ def generate_response(state: AgentState) -> AgentState:
     """
     messages = state["messages"]
     try:
+        global llm
         response = llm.invoke([
             SystemMessage(content="You are a helpful assistant that provides information based on the context provided.")
         ] + messages)
     except openai.RateLimitError as e:
         logger.error(e)
-        new_api_key = apikey_iterator.change_apikey()
-        global llm
-        llm = ChatOpenAI(
-        model=MAINMODEL,
-        api_key=new_api_key,
-        base_url=BASE_URL
-        )
+        apikey_iterator.change_apikey()
+        llm = apikey_iterator.get_llm()
         return generate_response(state)
     
     messages.append(AIMessage(content=response.content))

@@ -2,8 +2,9 @@
 import json
 from neo4j import EagerResult, GraphDatabase
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import ToolMessage, SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
+import numpy as np
 import openai
 from sentence_transformers import SentenceTransformer
 
@@ -22,14 +23,41 @@ apikey_iterator = APIKeyIterator()
 def get_context_from_graph(query: str) -> str:
     """Obtener informacion relacionada con la query dada consultando el grafo de conocimiento"""
     cypher_query = generate_cypher_query(query)
-    data = get_data_by_cypher_query(cypher_query)
+    data_by_cypher = get_data_by_cypher_query(cypher_query)
+    data_by_vectors = execute_vectorial_query(query)
+    data = merge_unique_by_id(data_by_cypher, data_by_vectors)
+    print(data)
+    if not data:
+        return "No found relevant information in the knowledge graph."
     return f"Context: {data}"
 
+def merge_unique_by_id(json_str1, json_str2):
+    try:
+        list1 = json.loads(json_str1)
+        list2 = json.loads(json_str2)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error al parsear las cadenas JSON: {e}")
+
+    seen_ids = set()
+    merged_list = []
+
+    for obj in list1 + list2:
+        obj_id = obj.get("id")
+        if obj_id is not None and obj_id not in seen_ids:
+            seen_ids.add(obj_id)
+            merged_list.append(obj)
+
+    return merged_list
+
 def eager_result_to_json_string(result: EagerResult) -> str:
+    if not result or not result.records:
+        return json.dumps([])
     rows = []
     for record in result.records:
         for key in record.keys():
             node = record.get(key)
+            if not node or not hasattr(node, '_properties'):
+                continue
             row = {p: node._properties[p] for p in node._properties.keys() if p != "vectors"}
             rows.append(row)
     return json.dumps(rows, indent=2, default=str)
@@ -44,25 +72,32 @@ def get_data_by_cypher_query(query: str):
     result = r_service.execute_external_query(query)
     return eager_result_to_json_string(result)
 
-# TODO: Implement vectorial query
-# def create_vectorial_query(query: str)->str:
-
-#     vectors = vectorize_query(query)
-    
-#     cypher_query = f"""MATCH p=(N)-[]->(M) RETURN """
-
-
+def execute_vectorial_query(query: str)->str:
+    vectors = vectorize_query(query)
+    list_vectors = np.array(vectors).tolist()
+    list_vectors = "[" + ", ".join(f"{x:.8f}" for x in list_vectors) + "]"
+    query = f"""
+    MATCH (n)
+    WHERE n.vectors IS NOT NULL
+    WITH {list_vectors} AS queryEmbedding, n
+    WITH n,
+        reduce(s = 0.0, i IN range(0, size(queryEmbedding)-1) | s + queryEmbedding[i] * n.vectors[i]) AS dot,
+        reduce(s = 0.0, i IN range(0, size(queryEmbedding)-1) | s + queryEmbedding[i]^2) AS queryNormSq,
+        reduce(s = 0.0, i IN range(0, size(n.vectors)-1) | s + n.vectors[i]^2) AS nodeNormSq
+    WITH n, dot / (sqrt(queryNormSq) * sqrt(nodeNormSq)) AS cosineSimilarity
+    RETURN n
+    ORDER BY cosineSimilarity DESC
+    LIMIT 5
+    """
+    result = get_data_by_cypher_query(query)
+    return result
 
 def generate_cypher_query(query: str) -> str:
     """
     Uses an LLM to translate a natural language question into a Cypher query,
     given the current database schema extracted via get_nodes_schema().
     """
-    llm = ChatOpenAI(
-    model=settings.mainmodel,
-    api_key=settings.model_api_key,
-    base_url=settings.base_url
-    )
+    llm = apikey_iterator.get_llm()
 
     schema = get_nodes_schema()
 
@@ -83,12 +118,8 @@ def generate_cypher_query(query: str) -> str:
         return response.content
     except openai.RateLimitError as e:
         logger.error(e)
-        new_api_key = apikey_iterator.change_apikey()
-        llm = ChatOpenAI(
-        model=settings.mainmodel,
-        api_key=new_api_key,
-        base_url=settings.base_url
-        )
+        apikey_iterator.change_apikey()
+        llm = apikey_iterator.get_llm()
         return generate_cypher_query(query)
 
 def get_nodes_schema() -> str:
@@ -145,6 +176,3 @@ def get_nodes_schema() -> str:
 
     driver.close()
     return "\n".join(schema_lines)
-
-def get_cypher_query_by_vectors(query: str) -> str:
-    pass
