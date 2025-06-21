@@ -2,7 +2,7 @@
 from typing import  TypedDict, Sequence, Annotated
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from langchain_core.messages import BaseMessage, ToolMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, SystemMessage, AIMessage
 from langgraph.prebuilt import ToolNode
 import openai
 from langgraph.checkpoint.memory import MemorySaver
@@ -23,11 +23,17 @@ class AgentState(TypedDict):
     username: str
     user_type: str
 
-llm = apikey_iterator.get_llm()
+def system_prompt():
+    return SystemMessage(content="""You are a helpful assistant, UPR-Assistant, that provides information based on the context provided. You must respond strictly based on that context when it is available and clearly related to the query. If the context is ambiguous, unrelated, or absent, you must respond using the information you have access to. Do not mention that you were given or not given context under any circumstance.""")
 
 tools = [get_context_from_graph]
 
-llm.bind_tools(tools=tools)
+def setup_model():
+    model = apikey_iterator.get_llm()
+    model = model.bind_tools(tools=tools)
+    return model
+
+llm = setup_model()
 
 def generate_response(state: AgentState) -> AgentState:
     """
@@ -37,46 +43,36 @@ def generate_response(state: AgentState) -> AgentState:
     try:
         global llm
         response = llm.invoke([
-            SystemMessage(content="You are a helpful assistant that provides information based on the context provided. You must respond strictly based on that context when it is available and clearly related to the query. If the context is ambiguous, unrelated, or absent, you must respond using the information you have access to. Do not mention that you were given or not given context under any circumstance.")
+            system_prompt()
         ] + messages)
     except openai.RateLimitError as e:
         logger.error(e)
         apikey_iterator.change_apikey()
-        llm = apikey_iterator.get_llm()
+        setup_model()
         return generate_response(state)
     
-    messages.append(AIMessage(content=response.content))
-    
-    return {"messages": messages}
+    if hasattr(response, "tool_calls") and response.tool_calls:
+        return {"messages": messages + [response]}
+    else:
+        return {"messages": messages + [AIMessage(content=response.content)]}
 
-def consult_kgraph(state: AgentState) -> AgentState:
+def should_continue(state: AgentState) -> str:
     """
-    Consults the knowledge graph to retrieve context based on the user's query.
+    Determines whether to continue by invoking a tool or to end the workflow.
+
+    Returns:
+        - "continue": if the last message contains tool_calls.
+        - END: if there are no tools to be executed.
     """
     messages = state["messages"]
     last_message = messages[-1]
+    if isinstance(last_message, AIMessage):
+        if hasattr(last_message, "tool_calls") and last_message.tool_calls:
+            return "continue"
+    return "end"
 
-    if isinstance(last_message, HumanMessage):
-        query = last_message.content
-        context = get_context_from_graph.invoke(query)
-        messages.append(ToolMessage(content=context, tool_call_id="consult_kgraph"))
-    
-    return {"messages": messages}
-
-def should_continue(state: AgentState):
-    messages = state["messages"]
-    last = messages[-1]
-    if not last.tool_calls: 
-        return "end"
-    else:
-        return "continue"
 
 graph = StateGraph(AgentState)
-
-graph.add_node(
-    "consult_kgraph",
-    consult_kgraph
-)
 
 graph.add_node("generate_response", generate_response)
 graph.add_node(
@@ -84,8 +80,7 @@ graph.add_node(
     ToolNode(tools=tools)
 )
 
-graph.set_entry_point("consult_kgraph")
-graph.add_edge("consult_kgraph", "generate_response")
+graph.set_entry_point("generate_response")
 
 graph.add_conditional_edges(
     "generate_response",
@@ -96,6 +91,14 @@ graph.add_conditional_edges(
     }
 )
 
+graph.add_edge("tools", "generate_response")
+
 agent = graph.compile(checkpointer=memory)
 
+def get_graph_image(output_path: str):
+    dot = agent.get_graph().draw_mermaid_png()
 
+    with open(output_path, "wb") as f:
+        f.write(dot)
+
+    logger.info(f"Graph saved in: {output_path.resolve()}")

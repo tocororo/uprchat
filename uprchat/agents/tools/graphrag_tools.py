@@ -1,15 +1,17 @@
 
 import json
+from typing import Dict, List
 from neo4j import EagerResult, GraphDatabase
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 import numpy as np
 import openai
-from sentence_transformers import SentenceTransformer
+from pydantic import BaseModel, Field
 
 from uprchat.app.config import get_settings
 from uprchat.harvester.logger import setup_logger
 from uprchat.mapper.services import RepositoryService
+from uprchat.mapper.vectors.strategies.sentence_transformer import TransformerVectorizer
 from uprchat.utils.apikey_iterator import APIKeyIterator
 
 settings = get_settings()
@@ -18,16 +20,48 @@ logger = setup_logger("agent_tools")
 
 apikey_iterator = APIKeyIterator()
 
+vectorizer = TransformerVectorizer()
+
+class GraphQueryInput(BaseModel):
+    query: str = Field(..., description="Natural language question to search in the knowledge graph.")
+
+class ContextOutput(BaseModel):
+    context: List[Dict] 
+    sources: List[str] = Field(
+        default_factory=list, description="List of sources used to generate the context."
+    )
+
 @tool
-def get_context_from_graph(query: str) -> str:
-    """Obtener informacion relacionada con la query dada consultando el grafo de conocimiento"""
-    cypher_query = generate_cypher_query(query)
-    data_by_cypher = get_data_by_cypher_query(cypher_query)
-    data_by_vectors = execute_vectorial_query(query)
-    data = merge_unique_by_id(data_by_cypher, data_by_vectors)
-    if not data:
-        return "No found relevant information in the knowledge graph."
-    return f"Context: {data}"
+def get_context_from_graph(input: GraphQueryInput):
+    """
+    Retrieve information related to the given query by optionally consulting the knowledge graph.
+    """
+    try:
+        query = input.query
+        cypher_query = generate_cypher_query(query)
+        data_by_cypher = get_data_by_cypher_query(cypher_query)
+        data_by_vectors = execute_vectorial_query(query)
+        data = merge_unique_by_id(data_by_cypher, data_by_vectors)
+        if not data:
+            return ContextOutput(context=[], sources=[])
+        sources = extract_sources(data) 
+        return ContextOutput(context=data, sources=sources)
+    except Exception as e:
+        logger.error(f"Error in get_context_from_graph for query='{query}': {e}")
+        return ContextOutput(context=[], sources=[])
+
+def extract_sources(data: List[Dict]) -> List[str]:
+    """
+    Extracts source information from the provided data.
+    Assumes that each dictionary in the list has a 'source' key.
+    """
+    sources = []
+    for item in data:
+        if isinstance(item, dict) and item.get('id', None):
+            source = item['id']
+            if isinstance(source, str) and source not in sources and source.startswith("http"):
+                sources.append(source)
+    return sources
 
 def merge_unique_by_id(json_str1, json_str2):
     try:
@@ -61,8 +95,7 @@ def eager_result_to_json_string(result: EagerResult) -> str:
     return json.dumps(rows, indent=2, default=str)
 
 def vectorize_query(query: str):
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L12-v2")
-    vector = model.encode(query)
+    vector = vectorizer.vectorize(query)
     return vector
 
 def get_data_by_cypher_query(query: str):
