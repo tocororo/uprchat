@@ -1,7 +1,6 @@
 
 import json
 from neo4j import EagerResult, GraphDatabase
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_core.tools import tool
 import numpy as np
@@ -26,7 +25,6 @@ def get_context_from_graph(query: str) -> str:
     data_by_cypher = get_data_by_cypher_query(cypher_query)
     data_by_vectors = execute_vectorial_query(query)
     data = merge_unique_by_id(data_by_cypher, data_by_vectors)
-    print(data)
     if not data:
         return "No found relevant information in the knowledge graph."
     return f"Context: {data}"
@@ -114,7 +112,6 @@ def generate_cypher_query(query: str) -> str:
     """
     try:
         response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=query)])
-        print(f"Generated Cypher Query: {response.content}")
         return response.content
     except openai.RateLimitError as e:
         logger.error(e)

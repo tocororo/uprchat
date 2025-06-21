@@ -5,6 +5,7 @@ from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage, ToolMessage, SystemMessage, HumanMessage, AIMessage
 from langgraph.prebuilt import ToolNode
 import openai
+from langgraph.checkpoint.memory import MemorySaver
 
 from uprchat.agents.tools.graphrag_tools import  get_context_from_graph
 from uprchat.app.config import get_settings
@@ -15,16 +16,12 @@ logger = setup_logger("agent")
 
 settings = get_settings()
 apikey_iterator = APIKeyIterator()
-
-MAINMODEL = settings.mainmodel
-MODEL_API_KEY = apikey_iterator.get_current_apikey()
-BASE_URL = settings.base_url
+memory = MemorySaver()
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     username: str
     user_type: str
-
 
 llm = apikey_iterator.get_llm()
 
@@ -40,7 +37,7 @@ def generate_response(state: AgentState) -> AgentState:
     try:
         global llm
         response = llm.invoke([
-            SystemMessage(content="You are a helpful assistant that provides information based on the context provided.")
+            SystemMessage(content="You are a helpful assistant that provides information based on the context provided. You must respond strictly based on that context when it is available and clearly related to the query. If the context is ambiguous, unrelated, or absent, you must respond using the information you have access to. Do not mention that you were given or not given context under any circumstance.")
         ] + messages)
     except openai.RateLimitError as e:
         logger.error(e)
@@ -99,4 +96,6 @@ graph.add_conditional_edges(
     }
 )
 
-agent = graph.compile()
+agent = graph.compile(checkpointer=memory)
+
+
