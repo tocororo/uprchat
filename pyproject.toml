@@ -31,6 +31,8 @@ python-docx = "^1.1.2"
 python-pptx = "^1.0.2"
 langgraph = "^0.4.8"
 asyncpg = "^0.30.0"
+langgraph-checkpoint-postgres = "^2.0.21"
+psycopg = {extras = ["binary"], version = "^3.2.9"}
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.2.5"
@@ -46,3 +48,4 @@ simple-recollection = "uprchat.harvester.start:simple_recollection"
 entity-extraction-recollection = "uprchat.harvester.start:recollection_with_entity_extraction"
 summary-creation-recollection = "uprchat.harvester.start:recollection_with_summary_creation"
 complete-recollection = "uprchat.harvester.start:complete_recollection"
+testing-agent = "uprchat.agents.graphrag_agent:testing_agent"

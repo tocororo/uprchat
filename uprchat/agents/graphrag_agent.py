@@ -1,11 +1,15 @@
 
+import asyncio
 from typing import  TypedDict, Sequence, Annotated
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
-from langchain_core.messages import BaseMessage, SystemMessage, AIMessage
+from langchain_core.messages import BaseMessage, SystemMessage, AIMessage, HumanMessage
 from langgraph.prebuilt import ToolNode
 import openai
-from langgraph.checkpoint.memory import MemorySaver
+from psycopg_pool import AsyncConnectionPool
+from psycopg.rows import dict_row
+from uprchat.agents.memory import DB_URI
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from uprchat.agents.tools.graphrag_tools import  get_context_from_graph
 from uprchat.app.config import get_settings
@@ -16,7 +20,6 @@ logger = setup_logger("agent")
 
 settings = get_settings()
 apikey_iterator = APIKeyIterator()
-memory = MemorySaver()
 
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
@@ -48,7 +51,7 @@ def generate_response(state: AgentState) -> AgentState:
     except openai.RateLimitError as e:
         logger.error(e)
         apikey_iterator.change_apikey()
-        setup_model()
+        llm = setup_model()
         return generate_response(state)
     
     if hasattr(response, "tool_calls") and response.tool_calls:
@@ -71,34 +74,63 @@ def should_continue(state: AgentState) -> str:
             return "continue"
     return "end"
 
+def build_graph():
+    graph = StateGraph(AgentState)
 
-graph = StateGraph(AgentState)
+    graph.add_node("generate_response", generate_response)
+    graph.add_node(
+        "tools",
+        ToolNode(tools=tools)
+    )
+    graph.set_entry_point("generate_response")
+    graph.add_conditional_edges(
+        "generate_response",
+        should_continue,
+        {
+            "continue": "tools",
+            "end": END
+        }
+    )
+    graph.add_edge("tools", "generate_response")
+    return graph
 
-graph.add_node("generate_response", generate_response)
-graph.add_node(
-    "tools",
-    ToolNode(tools=tools)
-)
+async def main():
+    async with AsyncConnectionPool(
+        conninfo=DB_URI, 
+        kwargs={
+            "autocommit": True, 
+            "prepare_threshold": 0, 
+            "row_factory": dict_row
+            }
+        ) as pool, pool.connection() as conn:
+        
+        memory = AsyncPostgresSaver(conn)
+        graph = build_graph()
+        agent = graph.compile(checkpointer=memory)
+        user = input("Usuario: ")
+        question = input("Pregunta: ")
+        while input != "exit":
+            response = await agent.ainvoke(
+                {
+                    "messages": [
+                        HumanMessage(content=question),
+                    ],
+                    "username": "test_user",
+                    "user_type": "test"
+                },
+                config={"configurable": {"thread_id": user}}
+            )
+            print(response["messages"][-1].content)
+            
+            question = input("Pregunta: ")
 
-graph.set_entry_point("generate_response")
-
-graph.add_conditional_edges(
-    "generate_response",
-    should_continue,
-    {
-        "continue": "tools",
-        "end": END
-    }
-)
-
-graph.add_edge("tools", "generate_response")
-
-agent = graph.compile(checkpointer=memory)
-
-def get_graph_image(output_path: str):
+def get_graph_image(agent, output_path: str):
     dot = agent.get_graph().draw_mermaid_png()
 
     with open(output_path, "wb") as f:
         f.write(dot)
 
-    logger.info(f"Graph saved in: {output_path.resolve()}")
+    logger.info(f"Graph saved in: {output_path}")
+
+def testing_agent():
+    asyncio.run(main())
