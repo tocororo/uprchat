@@ -2,14 +2,21 @@ from fastapi import APIRouter, Body, Depends, status, HTTPException,Request
 from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import Annotated
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage,AIMessage
 from uprchat.app.chats.schemas import ChatDB
 from uprchat.app.chats.services import create_chat, read_all_chats, read_chat, delete_chat
 from uprchat.app.database.db_config import get_session
 from uprchat.app.users.utils import get_current_user_uuid
 from uprchat.app.routes.users import oauth2
-from uprchat.agents.graphrag_agent import agent
+from psycopg_pool import AsyncConnectionPool
+from psycopg.rows import dict_row
+# from uprchat.agents.memory import DB_URI
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from uprchat.agents.graphrag_agent import build_graph
 from uuid import UUID
+from uprchat.app.config import get_settings
+settings = get_settings()
+DB_URI = f"postgres://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_db}?sslmode=disable"
 
 rt = APIRouter(prefix="/chats", tags=["chats"])
 
@@ -40,17 +47,69 @@ async def delete_one_chat(chat_id: int ,session: Annotated[AsyncSession,Depends(
 @rt.post("/prompt", response_model=dict, status_code=status.HTTP_200_OK)
 async def prompt(input: dict = Body()):
     print(input)
-    user_message = ""
-    ai_message = ""
-    for message in input['messages']:
-        if message['role'] == "user":
-            user_message = message['text']
-        else:
-            ai_message = message['ai']
-    output = agent.invoke({"messages": HumanMessage(content=user_message)})["messages"][-1].content
+    user_message = input['messages'][0]['text']
+    async with AsyncConnectionPool(
+        conninfo=DB_URI, 
+        kwargs={
+            "autocommit": True, 
+            "prepare_threshold": 0, 
+            "row_factory": dict_row
+            }
+        ) as pool, pool.connection() as conn:
+        memory = AsyncPostgresSaver(conn)
+        graph = build_graph()
+        agent = graph.compile(checkpointer=memory)
+        output = await agent.ainvoke({
+                    "messages": [
+                        HumanMessage(content=user_message),
+                    ],
+                    "username": "test_user",
+                    "user_type": "test",
+                    "form_json":"",
+                    "sources":[]
+                },
+                            config={"configurable": {"thread_id": input['chat_id']}})
+        sources = ""
+        if(output.get('sources',[])):
+            sources = "### Sources:"
+            for source in output["sources"]:
+                sources += f"\n - {source}"
+
     return {
-        "text": output
+        "text": output["messages"][-1].content + output.get('form_json',"") + "\n" + sources
     }
+
+# @rt.post("/prompt", response_model=dict, status_code=status.HTTP_200_OK)
+# async def prompt(input: dict = Body()):
+#     return {
+#         "text":"""{
+#   "title": "Formulario de Información de Contacto",
+#   "fields": [
+#     {
+#       "label": "Nombre completo",
+#       "type": "text",
+#       "name": "nombre_completo",
+#       "required": true
+#     },
+#     {
+#       "label": "Correo electrónico",
+#       "type": "email",
+#       "name": "correo_electronico",
+#       "required": true
+#     },
+#     {
+#       "label": "Número de teléfono",
+#       "type": "tel",
+#       "name": "numero_telefono",
+#       "required": true
+#     }
+#   ],
+#   "submit_label": "Enviar"
+# }"""
+#     }
+
+
+
 
 # @rt.post('/prompt')
 # async def prompt():

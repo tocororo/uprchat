@@ -13,4 +13,5 @@ async def setup():
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         await checkpointer.setup()
 
-asyncio.run(setup())
+async def build_memory():
+    await setup()
