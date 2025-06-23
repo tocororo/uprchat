@@ -1,9 +1,10 @@
 
 import json
-from typing import Dict, List
+from typing import Annotated, Dict, List
 from neo4j import EagerResult, GraphDatabase
-from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from langchain_core.tools import tool, InjectedToolCallId
+from langgraph.types import Command
 import numpy as np
 import openai
 from pydantic import BaseModel, Field
@@ -32,23 +33,48 @@ class ContextOutput(BaseModel):
     )
 
 @tool
-def get_context_from_graph(input: GraphQueryInput):
+def get_context_from_graph( 
+    input: str,
+    tool_call_id: Annotated[str, InjectedToolCallId]
+) -> Command:
     """
-    Retrieve information related to the given query by optionally consulting the knowledge graph.
+    Retrieve information related to the given query by consulting the knowledge graph. This step is particularly recommended when there is limited context available or when the subject matter of the user's query is not clearly understood. The retrieved information can be used to answer the user's question or to provide relevant context for subsequent processing.
     """
     try:
-        query = input.query
+        query = input
         cypher_query = generate_cypher_query(query)
         data_by_cypher = get_data_by_cypher_query(cypher_query)
         data_by_vectors = execute_vectorial_query(query)
         data = merge_unique_by_id(data_by_cypher, data_by_vectors)
+        sources = []
         if not data:
-            return ContextOutput(context=[], sources=[])
-        sources = extract_sources(data) 
-        return ContextOutput(context=data, sources=sources)
+            data = []
+        else:
+            sources = extract_sources(data)
+        return Command(
+            update={
+                "sources": sources,
+                "messages": [
+                    ToolMessage(
+                        content=f"Information retrieved from the knowledge graph for query '{query}': {json.dumps(data, indent=2)}",
+                        tool_call_id=tool_call_id
+                    )
+                ]
+            }
+        )
     except Exception as e:
         logger.error(f"Error in get_context_from_graph for query='{query}': {e}")
-        return ContextOutput(context=[], sources=[])
+        return Command(
+            update={
+                "sources": [],
+                "messages": [
+                    ToolMessage(
+                        content="No was possible to retrieve information from the knowledge graph.",
+                        tool_call_id=tool_call_id
+                    )
+                ]
+            }
+        )
 
 def extract_sources(data: List[Dict]) -> List[str]:
     """

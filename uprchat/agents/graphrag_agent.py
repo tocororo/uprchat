@@ -28,6 +28,7 @@ class AgentState(TypedDict):
     username: str
     user_type: str
     form_json: Optional[str]
+    sources: Optional[Sequence[str]]
 
 def system_prompt():
     return SystemMessage(content="""You are a helpful assistant, UPR-Assistant, that provides information based on the context provided. You must respond strictly based on that context when it is available and clearly related to the query. If the context is ambiguous, unrelated, or absent, you must respond using the information you have access to. Do not mention that you were given or not given context under any circumstance.""")
