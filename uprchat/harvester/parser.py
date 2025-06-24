@@ -1,11 +1,13 @@
 from pathlib import Path
 from typing import List
+from bs4 import BeautifulSoup
 import fitz
 from langchain_community.document_loaders import (
     PyMuPDFLoader,
 )
 from langchain_core.documents import Document as LangchainDocument
 from docx import Document
+import openai
 from pptx import Presentation
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -13,8 +15,11 @@ from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate
 
 from uprchat.harvester.logger import setup_logger
+from uprchat.utils import apikey_iterator
 
 logger = setup_logger(__name__)
+
+apikey_iterator = apikey_iterator.APIKeyIterator()
 
 class Parser:
     """
@@ -65,7 +70,6 @@ class Parser:
         try:
             with open(path, "rb") as f:
                 presentation = Presentation(f)
-                print("dsadsad")
                 summary = " ".join(
                     [f"{shape.text}" 
                      for slide in list(presentation.slides)[:100] 
@@ -73,7 +77,6 @@ class Parser:
                      if shape.has_text_frame
                      ]
                     )
-                print("dsadsad")
                 return summary
         except Exception as e:
             logger.error(f"Error parsing PPTX {path}: {e}")
@@ -85,17 +88,20 @@ class ParserAI:
     """
     def __init__(
         self,
-        model_name: str,
-        model_type: str,
-        base_url: str,
+        model_name: str = None,
+        model_type: str = "openai",
+        base_url: str = None,
         api_key: str = None
     ):
         if model_type != "openai":
             raise ValueError(f"Model type '{model_type}' not supported yet.")
 
-        self.agent = ChatOpenAI(
-            model_name=model_name, base_url=base_url, api_key=api_key
-        )
+        if not model_name:
+            self.agent = apikey_iterator.get_llm()
+        else:
+            self.agent = ChatOpenAI(
+                model_name=model_name, base_url=base_url, api_key=api_key
+            )
 
         prompt = """
                 Elabora un resumen en español del siguiente texto. Debe ser breve (alrededor de un
@@ -121,6 +127,8 @@ class ParserAI:
         try:
             docs = PyMuPDFLoader(path).load()
             return self._summarize(docs)
+        except openai.RateLimitError as e:
+            raise e
         except Exception as e:
             logger.error(f"Error parsing PDF {path}: {e}")
             return ""
@@ -134,6 +142,8 @@ class ParserAI:
                 texts.append(text)
             docs = [LangchainDocument(page_content=text) for text in texts]
             return self._summarize(docs)
+        except openai.RateLimitError as e:
+            raise e
         except Exception as e:
             logger.error(f"Error parsing DOCX {path}: {e}")
             return ""
@@ -150,6 +160,31 @@ class ParserAI:
 
             docs = [LangchainDocument(page_content=text) for text in texts]
             return self._summarize(docs)
+        except openai.RateLimitError as e:
+            raise e
         except Exception as e:
             logger.error(f"Error parsing PPTX {path}: {e}")
+            return ""
+        
+
+    def parse_html(self, path: Path) -> str:
+        """
+        Parse and summarize the textual content of an HTML document.
+        """
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                html_content = file.read()
+
+            soup = BeautifulSoup(html_content, "html.parser")
+
+            for element in soup(["script", "style", "head", "meta", "noscript"]):
+                element.decompose()
+
+            text = soup.get_text(separator=" ", strip=True)
+            doc = LangchainDocument(page_content=text)
+            return self._summarize([doc])
+        except openai.RateLimitError as e:
+            raise e
+        except Exception as e:
+            logger.error(f"Error parsing HTML {path}: {e}")
             return ""

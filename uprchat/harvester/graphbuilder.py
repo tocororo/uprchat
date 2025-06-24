@@ -1,6 +1,7 @@
 
 import json
 from typing import Dict, List, Optional
+from neo4j import GraphDatabase, basic_auth
 
 from uprchat.harvester.extractor import Extractor
 from uprchat.harvester.logger import setup_logger
@@ -24,12 +25,9 @@ class GraphBuilder:
                  model_type: str,
                  base_url: str,
                  api_key: str,
-                 neo4j_user: str = None,
-                 neo4j_pass: str = None,
-                 neo4j_db: str = None,
-                 neo4j_uri: str = None,
+                 neo4j_config: Dict[str, str],
                  proxy_config: Optional[Dict[str, str]] = None,
-                 entity_extraction: Optional[bool] = False
+                 delay: Optional[int] = 1
                   ):
         
         self.extractor = Extractor(
@@ -37,23 +35,27 @@ class GraphBuilder:
             model_type,
             base_url,
             api_key,
-            proxy_config
+            proxy_config,
+            delay
         )
         self.visited = set()
         self.urls = []
+        if not neo4j_config:
+            raise ValueError("Neo4j configuration is required.")
         self._neo4j_config = {
-            "neo4j_user": neo4j_user,
-            "neo4j_pass": neo4j_pass,
-            "neo4j_db": neo4j_db,
-            "neo4j_uri": neo4j_uri
+            "neo4j_user": neo4j_config["neo4j_user"],
+            "neo4j_pass": neo4j_config["neo4j_pass"],
+            "neo4j_db": neo4j_config["neo4j_db"],
+            "neo4j_uri": neo4j_config["neo4j_uri"]
         }
-        self.entity_extraction = entity_extraction
 
     async def _crawl(
                      self, 
                      url: str,  
                      recollection_deep: int, 
-                     recollection: str
+                     recollection: str,
+                     entity_extraction: Optional[bool] = False,
+                     summary_creation: Optional[bool] = False,
                      ):
         self.visited.clear()
         self.urls = [[url]]
@@ -65,18 +67,21 @@ class GraphBuilder:
             for current_url in urls_list:
                 if current_url in self.visited: 
                     continue
+                update_node = False
                 node = await self.node_exists(current_url, recollection)
+                old_node_recollection = node["recollection"] if node else False
                 if node:
                     logger.info(f"Node for {current_url} already exists, skipping.")
-                    new_urls.extend(node["links"])
+                    if node.get("links", None):
+                        new_urls.extend(node["links"])
                     stored_in = node["stored_in"]
                 else:
                     logger.info(f"Making request to {current_url}")
-                    result = await self.extractor.process_url(current_url, self.entity_extraction)
-                    if not result:
+                    node = await self.extractor.process_url(current_url, entity_extraction)
+                    if not node:
                         continue
-                    result["recollection"] = recollection
-                    links = result.get("links", None)
+                    node["recollection"] = recollection
+                    links = node.get("links", None)
                     if links:
                         internal_links = [
                             item["href"]
@@ -84,24 +89,37 @@ class GraphBuilder:
                             if item["href"] not in self.visited
                         ]
                         if internal_links:
-                            result["links"] = internal_links
+                            node["links"] = internal_links
                             new_urls.extend(internal_links)
-                    node = self._get_data_from_result(result)
-                    self.add_nodes([node], result["type"])
-                    stored_in = result["stored_in"]
+                    stored_in = node["stored_in"]
+                    update_node = True
+                extension = stored_in.split(".")[-1]
+                source_type = "page" if extension == "html" else "document"
+                if summary_creation:
+                    if node.get("summary", "") == "" or recollection != old_node_recollection:
+                        logger.info(f"Extracting summary for {current_url}")
+                        summary = self.extractor.extract_summary(stored_in, extension)
+                        node["summary"] = clean_text_for_neo4j(summary)
+                        self.delete_node_by_id(node["id"])
+                        update_node = True
+                        
+                node = self._get_data_from_result(node, source_type)
+                if not old_node_recollection or update_node:
+                    self.add_nodes([node], source_type)
                 self.visited.add(current_url)
-                if self.entity_extraction and not self.are_extracted_entities(current_url):
+                if entity_extraction and (not self.are_extracted_entities(current_url) or recollection != old_node_recollection):
                     logger.info(f"Extracting entities from {current_url}")
                     content = self.extractor.extract_document_bytes(stored_in)
                     type = stored_in.split(".")[-1]
                     document = extract_text_to_document(content, type)
+                    source_type = "page" if type == "html" else "document"
                     entities = self.extractor.extract_entities(document)
                     for entity_type in entities.keys():
                         for entity in entities[entity_type]:
-                            entity["page"] = node
+                            entity[source_type] = node
                     self.add_entities_nodes(entities)
-                elif self.entity_extraction:
-                    logger.info("Entities already extracted for this page.")
+                elif entity_extraction:
+                    logger.info("Entities already extracted.")
             self.urls.append(new_urls)
 
     def are_extracted_entities(self, source_page: str) -> bool:
@@ -113,21 +131,21 @@ class GraphBuilder:
             bool: True if entities are extracted, False otherwise.
         """
         r_service: RepositoryService = RepositoryService()
-        query = f"""MATCH (p:Page {"{ id: \""+source_page+"\"}"})-[:REFERENCED_IN]-(n)
+        query = f"""MATCH (p {"{ id: \""+source_page+"\"}"})-[:REFERENCED_IN]-(n)
                 RETURN n"""
         records, summary, keys = r_service.execute_external_query(query)
         if records != []:
             return True
         return False
 
-    async def node_exists(self, url: str, recollection: int) -> List | None:
+    async def node_exists(self, url: str, recollection: str) -> Dict | None:
         """
         Checks if a node with the given URL already exists in the Neo4j database.
         Args:
             url (str): URL to check.
-            recollection (int): Current recollection number.
+            recollection (str): Current recollection id.
         Returns:
-            bool: True if the node exists, False otherwise.
+            Dict | None: Returns the node properties if it exists and matches the recollection, otherwise None.
         """
         r_service: RepositoryService = RepositoryService()
         query = f"""MATCH (n) WHERE n.id = \"{url}\" RETURN n LIMIT 1"""
@@ -139,24 +157,29 @@ class GraphBuilder:
             # r_service.execute_external_query(update_query)
         return None
             
-    def _get_data_from_result(self, result: Dict) -> Dict:
-        source = extract_source_information(result["url"])
-        summary = clean_text_for_neo4j(result["summary"])
+    def _get_data_from_result(self, result: Dict, type: str) -> Dict:
+        source = extract_source_information(result["id"])
         data = {
-            "id": result["url"],
+            "id": result["id"],
             "stored_in": result["stored_in"],
             "source":  source,
-            "summary": summary,
-            "recollection": result.get("recollection", "0")
+            "recollection": result.get("recollection", "0"),
+            "summary": result.get("summary", ""),
         }
-        if result["type"] == "page":
+        if type == "page":
             data["title"] = clean_text_for_neo4j(result["title"])
-            data["links"] = result["links"]
+            data["body"] = clean_text_for_neo4j(result["body"])
+            data["links"] = result.get("links", [])
 
         return data
 
     async def start_recollection(
-        self, url: str, recollection_deep: int = 99999999, recollection: str = "0"
+        self, 
+        url: str, 
+        recollection_deep: int = 99999999, 
+        recollection: str = "0",
+        entity_extraction: Optional[bool] = False,
+        summary_creation: Optional[bool] = False,
     ):
         """
         Begins asynchronous crawling from a seed URL up to a specified depth, collecting page data and internal links.
@@ -164,10 +187,12 @@ class GraphBuilder:
             url (str): Starting URL for the crawl.
             recollection_deep (int): Maximum number of levels to process (default: 99999999).
             recollection (str): Current recollection (default: "0").
+            entity_extraction (bool): Whether to extract entities from the pages (default: False).
+            summary_creation (bool): Whether to create summaries for the pages (default: False).
         Returns:
             None
         """
-        await self._crawl(url, recollection_deep, recollection)
+        await self._crawl(url, recollection_deep, recollection, entity_extraction, summary_creation)
     
     async def start_recollection_with_ai(
         self, url: str, recollection_deep: int = 99999999, recollection: str = "0"
@@ -234,10 +259,30 @@ class GraphBuilder:
         Returns:
             None
         """
-        r_service: RepositoryService = RepositoryService(
-            self._neo4j_config["neo4j_uri"],
-            self._neo4j_config["neo4j_user"],
-            self._neo4j_config["neo4j_pass"],
-            self._neo4j_config["neo4j_db"]
-        )
+        r_service: RepositoryService = RepositoryService()
+        # r_service: RepositoryService = RepositoryService(
+        #     self._neo4j_config["neo4j_uri"],
+        #     self._neo4j_config["neo4j_user"],
+        #     self._neo4j_config["neo4j_pass"],
+        #     self._neo4j_config["neo4j_db"]
+        # )
         r_service.clean_graph_db()
+
+    def delete_node_by_id(self, node_id):
+        driver = GraphDatabase.driver(
+            self._neo4j_config["neo4j_uri"], 
+            auth=basic_auth(self._neo4j_config["neo4j_user"], self._neo4j_config["neo4j_pass"]))
+        
+        query = f"""
+        MATCH (n)
+        WHERE n.id = \"{node_id}\"
+        DETACH DELETE n
+        """
+
+        try:
+            with driver.session() as session:
+                result = session.run(query)
+        except Exception as e:
+            raise e
+        finally:
+            driver.close()

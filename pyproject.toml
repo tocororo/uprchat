@@ -23,7 +23,7 @@ python-multipart = "^0.0.17"
 scikit-learn = "^1.5.2"
 sentence-transformers = "^3.3.1"
 langchain-ollama = "^0.2.2"
-crawl4ai = "^0.6.0"
+crawl4ai = "0.6.3"
 pymupdf = "^1.25.5"
 langchain = {extras = ["openai"], version = "^0.3.25"}
 langchain-community = "^0.3.23"
@@ -31,6 +31,8 @@ python-docx = "^1.1.2"
 python-pptx = "^1.0.2"
 langgraph = "^0.4.8"
 asyncpg = "^0.30.0"
+langgraph-checkpoint-postgres = "^2.0.21"
+psycopg = {extras = ["binary"], version = "^3.2.9"}
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.2.5"
@@ -42,3 +44,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "uprchat.app.main:start"
+simple-recollection = "uprchat.harvester.start:simple_recollection"
+entity-extraction-recollection = "uprchat.harvester.start:recollection_with_entity_extraction"
+summary-creation-recollection = "uprchat.harvester.start:recollection_with_summary_creation"
+complete-recollection = "uprchat.harvester.start:complete_recollection"
+testing-agent = "uprchat.agents.graphrag_agent:testing_agent"

@@ -27,6 +27,7 @@
                     "id": "id",
                     "title": "title",
                     "summary": "summary",
+                    "body": "body",
                     "stored_in": "stored_in",
                     "recollection": "recollection",
                     "links": "links",

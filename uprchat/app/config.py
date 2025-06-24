@@ -1,11 +1,14 @@
+from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+from uprchat.utils.apikey_iterator import APIKeyIterator
 
 
 class Settings(BaseSettings):
     mainmodel: str
     modeltxttocypher:str
-    model_api_key: str 
+    model_api_key: List[str] 
     base_url: str
     postgres_database_url: str
     postgres_user: str
@@ -25,3 +28,9 @@ class Settings(BaseSettings):
 
 def get_settings():
     return Settings()
+
+settings = get_settings()
+
+APIKeyIterator(api_keys=settings.model_api_key, 
+               model_name=settings.mainmodel, 
+               base_url=settings.base_url)

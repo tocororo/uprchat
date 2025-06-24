@@ -1,35 +1,127 @@
 
 import json
+from typing import Annotated, Dict, List
 from neo4j import EagerResult, GraphDatabase
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import ToolMessage, SystemMessage, HumanMessage
-from langchain_core.tools import tool
-from sentence_transformers import SentenceTransformer
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from langchain_core.tools import tool, InjectedToolCallId
+from langgraph.types import Command
+import numpy as np
+import openai
+from pydantic import BaseModel, Field
 
 from uprchat.app.config import get_settings
+from uprchat.harvester.logger import setup_logger
 from uprchat.mapper.services import RepositoryService
+from uprchat.mapper.vectors.strategies.sentence_transformer import TransformerVectorizer
+from uprchat.utils.apikey_iterator import APIKeyIterator
 
 settings = get_settings()
 
+logger = setup_logger("agent_tools")
+
+apikey_iterator = APIKeyIterator()
+
+vectorizer = TransformerVectorizer()
+
+class GraphQueryInput(BaseModel):
+    query: str = Field(..., description="Natural language question to search in the knowledge graph.")
+
+class ContextOutput(BaseModel):
+    context: List[Dict] 
+    sources: List[str] = Field(
+        default_factory=list, description="List of sources used to generate the context."
+    )
+
 @tool
-def get_context_from_graph(query: str) -> str:
-    """Obtener informacion relacionada con la query dada consultando el grafo de conocimiento"""
-    cypher_query = generate_cypher_query(query)
-    data = get_data_by_cypher_query(cypher_query)
-    return f"Context: {data}"
+def get_context_from_graph( 
+    input: str,
+    tool_call_id: Annotated[str, InjectedToolCallId]
+) -> Command:
+    """
+    Retrieve information related to the given query by consulting the knowledge graph. This step is particularly recommended when there is limited context available or when the subject matter of the user's query is not clearly understood. The retrieved information can be used to answer the user's question or to provide relevant context for subsequent processing.
+    """
+    try:
+        query = input
+        cypher_query = generate_cypher_query(query)
+        data_by_cypher = get_data_by_cypher_query(cypher_query)
+        data_by_vectors = execute_vectorial_query(query)
+        data = merge_unique_by_id(data_by_cypher, data_by_vectors)
+        sources = []
+        if not data:
+            data = []
+        else:
+            sources = extract_sources(data)
+        return Command(
+            update={
+                "sources": sources,
+                "messages": [
+                    ToolMessage(
+                        content=f"Information retrieved from the knowledge graph for query '{query}': {json.dumps(data, indent=2)}",
+                        tool_call_id=tool_call_id
+                    )
+                ]
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error in get_context_from_graph for query='{query}': {e}")
+        return Command(
+            update={
+                "sources": [],
+                "messages": [
+                    ToolMessage(
+                        content="No was possible to retrieve information from the knowledge graph.",
+                        tool_call_id=tool_call_id
+                    )
+                ]
+            }
+        )
+
+def extract_sources(data: List[Dict]) -> List[str]:
+    """
+    Extracts source information from the provided data.
+    Assumes that each dictionary in the list has a 'source' key.
+    """
+    sources = []
+    for item in data:
+        if isinstance(item, dict) and item.get('id', None):
+            source = item['id']
+            if isinstance(source, str) and source not in sources and source.startswith("http"):
+                sources.append(source)
+    return sources
+
+def merge_unique_by_id(json_str1, json_str2):
+    try:
+        list1 = json.loads(json_str1)
+        list2 = json.loads(json_str2)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error al parsear las cadenas JSON: {e}")
+
+    seen_ids = set()
+    merged_list = []
+
+    for obj in list1 + list2:
+        obj_id = obj.get("id")
+        if obj_id is not None and obj_id not in seen_ids:
+            seen_ids.add(obj_id)
+            merged_list.append(obj)
+
+    return merged_list
 
 def eager_result_to_json_string(result: EagerResult) -> str:
+    if not result or not result.records:
+        return json.dumps([])
     rows = []
     for record in result.records:
         for key in record.keys():
             node = record.get(key)
+            if not node or not hasattr(node, '_properties'):
+                continue
             row = {p: node._properties[p] for p in node._properties.keys() if p != "vectors"}
             rows.append(row)
     return json.dumps(rows, indent=2, default=str)
 
 def vectorize_query(query: str):
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L12-v2")
-    vector = model.encode(query)
+    vector = vectorizer.vectorize(query)
     return vector
 
 def get_data_by_cypher_query(query: str):
@@ -37,25 +129,32 @@ def get_data_by_cypher_query(query: str):
     result = r_service.execute_external_query(query)
     return eager_result_to_json_string(result)
 
-# TODO: Implement vectorial query
-# def create_vectorial_query(query: str)->str:
-
-#     vectors = vectorize_query(query)
-    
-#     cypher_query = f"""MATCH p=(N)-[]->(M) RETURN """
-
-
+def execute_vectorial_query(query: str)->str:
+    vectors = vectorize_query(query)
+    list_vectors = np.array(vectors).tolist()
+    list_vectors = "[" + ", ".join(f"{x:.8f}" for x in list_vectors) + "]"
+    query = f"""
+    MATCH (n)
+    WHERE n.vectors IS NOT NULL
+    WITH {list_vectors} AS queryEmbedding, n
+    WITH n,
+        reduce(s = 0.0, i IN range(0, size(queryEmbedding)-1) | s + queryEmbedding[i] * n.vectors[i]) AS dot,
+        reduce(s = 0.0, i IN range(0, size(queryEmbedding)-1) | s + queryEmbedding[i]^2) AS queryNormSq,
+        reduce(s = 0.0, i IN range(0, size(n.vectors)-1) | s + n.vectors[i]^2) AS nodeNormSq
+    WITH n, dot / (sqrt(queryNormSq) * sqrt(nodeNormSq)) AS cosineSimilarity
+    RETURN n
+    ORDER BY cosineSimilarity DESC
+    LIMIT 5
+    """
+    result = get_data_by_cypher_query(query)
+    return result
 
 def generate_cypher_query(query: str) -> str:
     """
     Uses an LLM to translate a natural language question into a Cypher query,
     given the current database schema extracted via get_nodes_schema().
     """
-    llm = ChatOpenAI(
-    model=settings.mainmodel,
-    api_key=settings.model_api_key,
-    base_url=settings.base_url
-    )
+    llm = apikey_iterator.get_llm()
 
     schema = get_nodes_schema()
 
@@ -70,9 +169,14 @@ def generate_cypher_query(query: str) -> str:
         - The query must be valid Cypher syntax.
         - The query always returns nodes and relationships, not just properties.
     """
-    response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=query)])
-    print(f"Generated Cypher Query: {response.content}")
-    return response.content
+    try:
+        response = llm.invoke([SystemMessage(content=system_prompt), HumanMessage(content=query)])
+        return response.content
+    except openai.RateLimitError as e:
+        logger.error(e)
+        apikey_iterator.change_apikey()
+        llm = apikey_iterator.get_llm()
+        return generate_cypher_query(query)
 
 def get_nodes_schema() -> str:
     """
@@ -128,6 +232,3 @@ def get_nodes_schema() -> str:
 
     driver.close()
     return "\n".join(schema_lines)
-
-def get_cypher_query_by_vectors(query: str) -> str:
-    pass

@@ -1,4 +1,4 @@
-
+from uprchat.app.config import get_settings
 from uprchat.app.routes import crawler
 import uvicorn
 import logging
@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from uprchat.app.database.db_config import create_tables
+from uprchat.agents.memory import build_memory
 from .routes import chats,llmqueries,users
 from .routes.mapper import mapper_router
 
@@ -31,6 +32,7 @@ app.add_middleware(
 @app.get("/")
 async def root():
     await create_tables()
+    await build_memory()
     return "Tables created"
 
 app.include_router(chats.rt)

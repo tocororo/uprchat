@@ -37,6 +37,11 @@
                         "__predicate": "REFERENCED_IN",
                         "__target": "Page",
                         "id": "id"
+                    },
+                    "document": {
+                        "__relation": "id",
+                        "__predicate": "REFERENCED_IN",
+                        "__target": "Document"
                     }
                 }
             }
