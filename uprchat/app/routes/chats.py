@@ -71,12 +71,14 @@ async def prompt(input: dict = Body()):
                             config={"configurable": {"thread_id": input['chat_id']}})
         sources = ""
         if(output.get('sources',[])):
-            sources = "### Sources:"
+            sources = "<h4>Fuentes:</h4><ul>"
             for source in output["sources"]:
-                sources += f"\n - {source}"
+                sources += f'<li><a target="_blank" href="{source}">{source}</a></li>'
+            sources+="</ul>"
 
     return {
-        "text": output["messages"][-1].content + output.get('form_json',"") + "\n" + sources
+        "text": output["messages"][-1].content + output.get('form_json',""),
+        "html": sources 
     }
 
 # @rt.post("/prompt", response_model=dict, status_code=status.HTTP_200_OK)
