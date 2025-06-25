@@ -167,8 +167,8 @@ class GraphBuilder:
             "summary": result.get("summary", ""),
         }
         if type == "page":
-            data["title"] = clean_text_for_neo4j(result["title"])
-            data["body"] = clean_text_for_neo4j(result["body"])
+            data["title"] = clean_text_for_neo4j(result.get("title", ""))
+            data["body"] = clean_text_for_neo4j(result.get("body", ""))
             data["links"] = result.get("links", [])
 
         return data
@@ -217,25 +217,31 @@ class GraphBuilder:
         Returns:
             None
         """
-        with open(f'uprchat/harvester/mappings/mapping_{entity}.json', 'r') as f:
-            config = f.read()
-            data = json.dumps(nodes)
+        try:
+            with open(f'uprchat/harvester/mappings/mapping_{entity}.json', 'r') as f:
+                config = f.read()
+                data = json.dumps(nodes)
 
-            m_service: MapperService = MapperService(
-                config,
-                data
-            )
-            # m_service: MapperService = MapperService(
-            #     json.loads(config),
-            #     nodes,
-            #     RepositoryService(
-            #         self._neo4j_config["neo4j_uri"],
-            #         self._neo4j_config["neo4j_user"],
-            #         self._neo4j_config["neo4j_pass"],
-            #         self._neo4j_config["neo4j_db"]
-            #     )
-            # )
-            m_service.start_mapping()
+                m_service: MapperService = MapperService(
+                    config,
+                    data
+                )
+                # m_service: MapperService = MapperService(
+                #     json.loads(config),
+                #     nodes,
+                #     RepositoryService(
+                #         self._neo4j_config["neo4j_uri"],
+                #         self._neo4j_config["neo4j_user"],
+                #         self._neo4j_config["neo4j_pass"],
+                #         self._neo4j_config["neo4j_db"]
+                #     )
+                # )
+                m_service.start_mapping()
+        except FileNotFoundError as e:
+            logger.error(f"ERROR: {e}")
+        except Exception as e:
+            logger.error(f"ERROR: {e}")
+
 
     def add_entities_nodes(
         self, nodes: Dict[str, List[Dict[str, str]]]

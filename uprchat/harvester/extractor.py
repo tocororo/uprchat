@@ -176,7 +176,8 @@ class Extractor:
                 | "application/vnd.openxmlformats-officedocument.presentationml.slideshow"
             ):
                 return "pptx"
-            case "text/html" | "text/html; charset=utf-8" | "text/html; charset=UTF-8" "text/plain; charset=utf-8" | "text/html; charset=UTF-8":
+            # case "text/html" | "text/html; charset=utf-8" | "text/html; charset=UTF-8" "text/plain; charset=utf-8" | "text/html; charset=UTF-8":
+            case s if "html" in s:
                 return "page"
             case _:
                 return content_type

@@ -20,7 +20,7 @@ class Downloader:
             bytes: The content retrieved from the URL.
         """
         try:
-            response = requests.get(url)
+            response = requests.get(url, verify=False )
             content = response.content
             data = {
                 "content": content, 
